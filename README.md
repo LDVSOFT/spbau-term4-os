@@ -9,3 +9,4 @@
 7. main.c -- from upstream, main
 8. memory.h -- from upstream, memory positionsing
 9. videomem.S -- from upstream, VGA utils
+10. pic.h -- PIC utils, init & EOI
