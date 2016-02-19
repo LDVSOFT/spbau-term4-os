@@ -29,19 +29,20 @@ struct interrupt {
 
 typedef struct interrupt idt_t[INTERRUPT_COUNT];
 
-static inline void set_idt(const struct idt_ptr *idt_ptr)
+static inline void interrupt_set_idt(const struct idt_ptr *idt_ptr)
 { __asm__ volatile ("lidt (%0)" : : "a"(idt_ptr)); }
+
+static inline void interrupt_enable()
+{ __asm__ volatile ("sti"); }
+
+static inline void interrupt_disable()
+{ __asm__ volatile ("cli"); }
 
 // Init IDT pointer
 void interrupt_init_ptr(struct idt_ptr *idt_ptr, idt_t table);
 
 // Sets interruption handler for interrupt #id in given IDT
 void interrupt_set(const struct idt_ptr *idt_ptr, uint8_t id, uint64_t handler);
-
-// Handlers
-// PIT handler (wrapper in assemby):
-void interrupt_pit_handler_wrapper(void);
-void interrupt_pit_handler(void);
 
 #endif /*__ASM_FILE__*/
 

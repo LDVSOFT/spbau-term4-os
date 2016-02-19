@@ -2,7 +2,6 @@
 #define __PIC_H__
 
 #include "ioport.h"
-#include "interrupt.h"
 
 #define PORT_PIC_MASTER_COMMAND 0x20
 #define PORT_PIC_MASTER_DATA    0x21

@@ -1,46 +1,28 @@
 #include "interrupt.h"
 
 	.code64
-	.global interrupt_pit_handler_wrapper
-	.extern interrupt_pit_handler
+	.global pit_handler_wrapper
+	.extern pit_handler
 
-interrupt_pit_handler_wrapper:
+pit_handler_wrapper:
 	pushfq
 	push %rax
-	push %rbx
 	push %rcx
 	push %rdx
-	push %rbp
 	push %r8
 	push %r9
 	push %r10
 	push %r11
-	push %r12
-	push %r13
-	push %r14
-	push %r15
-	push %rbp
-	push %rsi
-	push %rdi
 
 	cld
-	call interrupt_pit_handler
+	call pit_handler
 
-	pop %rdi
-	pop %rsi
-	pop %rbp
-	pop %r15
-	pop %r14
-	pop %r13
-	pop %r12
 	pop %r11
 	pop %r10
 	pop %r9
 	pop %r8
-	pop %rbp
 	pop %rdx
 	pop %rcx
-	pop %rbx
 	pop %rax
 	popfq
 	iretq

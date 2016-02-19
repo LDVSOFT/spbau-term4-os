@@ -1,4 +1,5 @@
 #include "pic.h"
+#include "interrupt.h"
 
 void pic_init() {
 	// Master
