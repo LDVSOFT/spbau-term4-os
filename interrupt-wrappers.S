@@ -5,7 +5,6 @@
 	.extern pit_handler
 
 pit_handler_wrapper:
-	pushfq
 	push %rax
 	push %rcx
 	push %rdx
@@ -24,5 +23,5 @@ pit_handler_wrapper:
 	pop %rdx
 	pop %rcx
 	pop %rax
-	popfq
+
 	iretq
