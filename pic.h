@@ -1,5 +1,4 @@
-#ifndef __PIC_H__
-#define __PIC_H__
+#pragma once
 
 #include "ioport.h"
 
@@ -15,5 +14,3 @@
 
 void pic_init();
 void pic_eoi(int is_slave);
-
-#endif /*__PIC_H__*/

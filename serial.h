@@ -1,5 +1,4 @@
-#ifndef __SERIAL_H__
-#define __SERIAL_H__
+#pragma once
 
 #include "ioport.h"
 
@@ -13,5 +12,3 @@
 void serial_init();
 void serial_putch(char c);
 void serial_puts(const char *s);
-
-#endif /*__SERIAL_H__*/

@@ -1,5 +1,4 @@
-#ifndef __PIT_H__
-#define __PIT_H__
+#pragma once
 
 #include "interrupt.h"
 
@@ -14,5 +13,3 @@
 void pit_init(const struct idt_ptr *idt_ptr);
 void pit_handler_wrapper();
 void pit_handler();
-
-#endif

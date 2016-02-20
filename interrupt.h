@@ -1,5 +1,4 @@
-#ifndef __INTERRUPT_H__
-#define __INTERRUPT_H__
+#pragma once
 
 #define INTERRUPT_COUNT 0x100
 
@@ -45,5 +44,3 @@ void interrupt_init_ptr(struct idt_ptr *idt_ptr, idt_t table);
 void interrupt_set(const struct idt_ptr *idt_ptr, uint8_t id, uint64_t handler);
 
 #endif /*__ASM_FILE__*/
-
-#endif /*__INTERRUPT_H__*/

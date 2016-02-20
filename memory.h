@@ -1,5 +1,4 @@
-#ifndef __MEMORY_H__
-#define __MEMORY_H__
+#pragma once
 
 #define PAGE_BITS         12
 #define PAGE_SIZE         (1 << 12)
@@ -25,5 +24,3 @@ static inline void *kernel_virt(uintptr_t addr)
 { return (void *)KERNEL_VIRT(addr); }
 
 #endif /*__ASM_FILE__*/
-
-#endif /*__MEMORY_H__*/
