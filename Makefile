@@ -13,7 +13,7 @@ ASM := bootstrap.S videomem.S interrupt-wrappers.S
 AOBJ:= $(ASM:.S=.o)
 ADEP:= $(ASM:.S=.d)
 
-SRC := main.c pic.c interrupt.c serial.c pit.c
+SRC := main.c pic.c interrupt.c serial.c pit.c print.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 

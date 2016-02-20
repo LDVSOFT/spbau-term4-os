@@ -1,5 +1,5 @@
 #include "pit.h"
-#include "serial.h"
+#include "print.h"
 #include "kernel_config.h"
 #include "pic.h"
 
@@ -13,9 +13,11 @@ void pit_init(const struct idt_ptr *idt_ptr) {
 
 void pit_handler() {
 	static int counter = 0;
+	static int number = 0;
 	++counter;
-	if (counter % 200 == 0 && counter >= PIT_FREQUENCY * PIT_INTERVAL / PIT_DIVISOR) {
-		serial_puts("Hello, world!\n");
+	if (counter >= (PIT_FREQUENCY * PIT_INTERVAL) / PIT_DIVISOR) {
+		++number;
+		printf("Hello, user! [Message #%d]\n", number);
 		counter = 0;
 	}
 	pic_eoi(0);
