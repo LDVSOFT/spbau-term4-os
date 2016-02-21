@@ -8,6 +8,8 @@ pit_handler_wrapper:
 	push %rax
 	push %rcx
 	push %rdx
+	push %rsi
+	push %rdi
 	push %r8
 	push %r9
 	push %r10
@@ -20,6 +22,8 @@ pit_handler_wrapper:
 	pop %r10
 	pop %r9
 	pop %r8
+	pop %rdi
+	pop %rsi
 	pop %rdx
 	pop %rcx
 	pop %rax
