@@ -23,4 +23,8 @@ static inline uintptr_t kernel_phys(void *addr)
 static inline void *kernel_virt(uintptr_t addr)
 { return (void *)KERNEL_VIRT(addr); }
 
+static inline uintmax_t get_bits(uintmax_t data, int start_bit, int count) {
+	return (data >> start_bit) & ((UINTMAX_C(1) << count) - 1);
+}
+
 #endif /*__ASM_FILE__*/
