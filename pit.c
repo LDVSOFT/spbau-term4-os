@@ -16,7 +16,7 @@ void pit_handler() {
 	static int counter = 0;
 	static int number = 0;
 	++counter;
-	if (counter >= (PIT_FREQUENCY * PIT_INTERVAL) / PIT_DIVISOR) {
+	if (counter >= PIT_TICKS) {
 		++number;
 		printf("Hello, user! [Message #%d]\n", number);
 		counter = 0;
