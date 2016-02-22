@@ -1,5 +1,4 @@
-#ifndef __MEMORY_H__
-#define __MEMORY_H__
+#pragma once
 
 #define PAGE_BITS         12
 #define PAGE_SIZE         (1 << 12)
@@ -24,6 +23,8 @@ static inline uintptr_t kernel_phys(void *addr)
 static inline void *kernel_virt(uintptr_t addr)
 { return (void *)KERNEL_VIRT(addr); }
 
-#endif /*__ASM_FILE__*/
+static inline uintmax_t get_bits(uintmax_t data, int start_bit, int count) {
+	return (data >> start_bit) & ((UINTMAX_C(1) << count) - 1);
+}
 
-#endif /*__MEMORY_H__*/
+#endif /*__ASM_FILE__*/

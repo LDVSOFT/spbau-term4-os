@@ -1,5 +1,4 @@
-#ifndef __IOPORT_H__
-#define __IOPORT_H__
+#pragma once
 
 #include <stdint.h>
 
@@ -35,5 +34,3 @@ static inline uint32_t in32(unsigned short port)
 	__asm__ volatile("inl %1, %0" : "=a"(value) : "d"(port));
 	return value;
 }
-
-#endif /* __IOPORT_H__ */

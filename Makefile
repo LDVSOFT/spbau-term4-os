@@ -1,16 +1,19 @@
 CC ?= gcc
 LD ?= gcc
+QEMU = qemu-system-x86_64
 
+RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm
+# -pedantic is off because I want some GCC extensions
 CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding \
-	-mcmodel=kernel -Wall -Wextra -Werror -pedantic -std=c99 \
+	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 \
 	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option
 LFLAGS := -nostdlib -z max-page-size=0x1000
 
-ASM := bootstrap.S videomem.S
+ASM := bootstrap.S videomem.S interrupt-wrappers.S
 AOBJ:= $(ASM:.S=.o)
 ADEP:= $(ASM:.S=.d)
 
-SRC := main.c
+SRC := main.c pic.c interrupt.c serial.c pit.c print.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
@@ -27,6 +30,12 @@ kernel: $(OBJ) kernel.ld
 
 -include $(DEP)
 
-.PHONY: clean
+.PHONY: clean run run-debug
 clean:
 	rm -f kernel $(OBJ) $(DEP)
+
+run: kernel
+	$(QEMU) $(RUNFLAGS) -kernel kernel
+
+run-debug: kernel
+	$(QEMU) $(RUNFLAGS) -kernel kernel -s
