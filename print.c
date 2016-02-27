@@ -3,13 +3,32 @@
 
 #include <stddef.h>
 
-typedef void (*print_char_f)(char c, void *buf_ptr);
+struct printer;
+
+typedef void (*printer_print_t)(struct printer* self, char c);
+typedef void (*printer_end_t)(struct printer* self);
+
+struct printer {
+	printer_print_t print;
+	printer_end_t end;
+};
+
+static void __printer_end(struct printer* printer) {
+}
+
+static inline void printer_print(struct printer *printer, char c) {
+	printer->print(printer, c);
+}
+
+static inline void printer_end(struct printer *printer) {
+	printer->end(printer);
+}
 
 #define DSIZE_SIZE_T 10
 #define NUMBER_BUFFER_SIZE 65
 
 static int ovprintf_print_number_(
-		uintmax_t value, print_char_f printer, void *printer_data,
+		uintmax_t value, struct printer *printer,
 		int isUpper, int base, int width, int addSeps) {
 	int count = 0;
 	char buffer[NUMBER_BUFFER_SIZE];
@@ -28,12 +47,12 @@ static int ovprintf_print_number_(
 		}
 	}
 	while (buffer_pos > 0) {
-		printer(buffer[--buffer_pos], printer_data);
+		printer_print(printer, buffer[--buffer_pos]);
 		count += 1;
 		if (addSeps) {
 			if (buffer_pos % 4 == 0 && buffer_pos > 0) {
 				count += 1;
-				printer(':', printer_data);
+				printer_print(printer, ':');
 			}
 		}
 	}
@@ -42,7 +61,7 @@ static int ovprintf_print_number_(
 }
 
 static int ovprintf_print_number(
-		va_list args, print_char_f printer, void *printer_data,
+		va_list args, struct printer *printer,
 		int dSize, int isUnsigned, int isUpper, int base, int width, int addSeps) {
 	//serial_puts("\n\nENTERED NUMBER\n\n");
 	int count = 0;
@@ -62,11 +81,11 @@ static int ovprintf_print_number(
 				break;
 		}
 		if (data < 0) {
-			printer('-', printer_data);
+			printer_print(printer, '-');
 			count += 1;
 			data *= -1;
 		}
-		count += ovprintf_print_number_(data, printer, printer_data, isUpper, base, width, addSeps); 
+		count += ovprintf_print_number_(data, printer, isUpper, base, width, addSeps);
 	} else {
 		uintmax_t data;
 		switch (dSize) {
@@ -85,19 +104,19 @@ static int ovprintf_print_number(
 				data = va_arg(args, size_t);
 				break;
 		}
-		count += ovprintf_print_number_(data, printer, printer_data, isUpper, base, width, addSeps);
+		count += ovprintf_print_number_(data, printer, isUpper, base, width, addSeps);
 	}
 
 	return count;
 }
 
-static int ovprintf_print_string(va_list args, print_char_f printer, void *printer_data, int dSize) {
+static int ovprintf_print_string(va_list args, struct printer *printer, int dSize) {
 	int count = 0;
 
 	switch (dSize) {
 		case 0:
 			for (const char *str = va_arg(args, char *); *str != 0; ++str) {
-				printer(*str, printer_data);
+				printer_print(printer, *str);
 				++count;
 			}
 			break;
@@ -109,11 +128,11 @@ static int ovprintf_print_string(va_list args, print_char_f printer, void *print
 	return count;
 }
 
-static int ovprintf_print_char(va_list args, print_char_f printer, void *printer_data, int dSize) {
+static int ovprintf_print_char(va_list args, struct printer *printer, int dSize) {
 	switch (dSize) {
 		case 0:	{
 				int c = va_arg(args, int);
-				printer(c, printer_data);
+				printer_print(printer, c);
 			}
 			return 1;
 		// NOPE, I'M NOT GOING TO ADD WIDECHARS SUPPORT NOW
@@ -122,11 +141,11 @@ static int ovprintf_print_char(va_list args, print_char_f printer, void *printer
 	}
 }
 
-static int ovprintf(const char *format, va_list args, print_char_f printer, void *printer_data) {
+static int ovprintf(const char *format, va_list args, struct printer *printer) {
 	int count = 0;
 	for (; *format != 0; ++format) {
 		if (*format != '%') {
-			printer(*format, printer_data);
+			printer_print(printer, *format);
 			++count;
 		} else {
 			int isOver = 0;
@@ -135,7 +154,7 @@ static int ovprintf(const char *format, va_list args, print_char_f printer, void
 				switch (*format) {
 					// %
 					case '%':
-						printer('%', printer_data);
+						printer_print(printer, '%');
 						++count;
 						isOver = 1;
 						break;
@@ -151,38 +170,38 @@ static int ovprintf(const char *format, va_list args, print_char_f printer, void
 						break;
 					// Char (c)
 					case 'c':
-						count += ovprintf_print_char(args, printer, printer_data, dSize);
+						count += ovprintf_print_char(args, printer, dSize);
 						isOver = 1;
 						break;
 					// String (s)
 					case 's':
-						count += ovprintf_print_string(args, printer, printer_data, dSize);
+						count += ovprintf_print_string(args, printer, dSize);
 						isOver = 1;
 						break;
 					// Number (diuoxX)
 					case 'd':
 					case 'i':
-						count += ovprintf_print_number(args, printer, printer_data, dSize, 0, 0, 10, 0, 0);
+						count += ovprintf_print_number(args, printer, dSize, 0, 0, 10, 0, 0);
 						isOver = 1;
 						break;
 					case 'u':
-						count += ovprintf_print_number(args, printer, printer_data, dSize, 1, 0, 10, 0, 0);
+						count += ovprintf_print_number(args, printer, dSize, 1, 0, 10, 0, 0);
 						isOver = 1;
 						break;
 					case 'o':
-						count += ovprintf_print_number(args, printer, printer_data, dSize, 1, 0, 8, 0, 0);
+						count += ovprintf_print_number(args, printer, dSize, 1, 0, 8, 0, 0);
 						isOver = 1;
 						break;
 					case 'x':
-						count += ovprintf_print_number(args, printer, printer_data, dSize, 1, 0, 16, 0, 0);
+						count += ovprintf_print_number(args, printer, dSize, 1, 0, 16, 0, 0);
 						isOver = 1;
 						break;
 					case 'X':
-						count += ovprintf_print_number(args, printer, printer_data, dSize, 1, 1, 16, 0, 0);
+						count += ovprintf_print_number(args, printer, dSize, 1, 1, 16, 0, 0);
 						isOver = 1;
 					// Pointer (p)
 					case 'p':
-						count += ovprintf_print_number(args, printer, printer_data, DSIZE_SIZE_T, 1, 1, 16, sizeof(size_t) * 2, 1);
+						count += ovprintf_print_number(args, printer, DSIZE_SIZE_T, 1, 1, 16, sizeof(size_t) * 2, 1);
 						isOver = 1;
 					// Else
 					default:
@@ -195,21 +214,52 @@ static int ovprintf(const char *format, va_list args, print_char_f printer, void
 			}
 		}
 	}
+	printer_end(printer);
 	return count;
 }
 
-static void serial_printer(char c, void *data __attribute__((unused))) {
+struct serial_printer {
+	struct printer super;
+};
+
+static void __serial_print(struct serial_printer *printer, char c) {
 	serial_putch(c);
 }
 
-static void buffer_printer(char c, void *data) {
-	char **buffer_ptr = (char **) data;
-	**buffer_ptr = c;
-	*buffer_ptr = *buffer_ptr + 1;
+static void serial_printer_init(struct serial_printer *self) {
+	self->super.print = (printer_print_t) __serial_print;
+	self->super.end = __printer_end;
+}
+
+struct buffer_printer {
+	struct printer super;
+	char *buffer;
+	size_t left;
+};
+
+static void __buffer_print(struct buffer_printer *self, char c) {
+	if (self->left != 0) {
+		*(self->buffer) = c;
+		self->buffer++;
+		--self->left;
+	}
+}
+
+static void __buffer_end(struct buffer_printer *self) {
+	*(self->buffer) = 0;
+}
+
+static void buffer_printer_init(struct buffer_printer *self, char *buffer, size_t size) {
+	self->super.print = (printer_print_t) __buffer_print;
+	self->super.end = (printer_end_t) __buffer_end;
+	self->buffer = buffer;
+	self->left = size - 1; // 1 is left for EOL
 }
 
 int vprintf(const char *format, va_list args) {
-	return ovprintf(format, args, &serial_printer ,0);
+	struct serial_printer printer;
+	serial_printer_init(&printer);
+	return ovprintf(format, args, (struct printer*) &printer);
 }
 
 int printf(const char *format, ...) {
@@ -220,8 +270,22 @@ int printf(const char *format, ...) {
 	return result;
 }
 
+int vsnprintf(char *s, size_t n, const char *format, va_list args) {
+	struct buffer_printer printer;
+	buffer_printer_init(&printer, s, n);
+	return ovprintf(format, args, (struct printer*) &printer);
+}
+
 int vsprintf(char *s, const char *format, va_list args) {
-	return ovprintf(format, args, &buffer_printer, &s);
+	return vsnprintf(s, 0, format, args);
+}
+
+int snprintf(char *s, size_t n, const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+	int result = vsnprintf(s, n, format, args);
+	va_end(args);
+	return result;
 }
 
 int sprintf(char *s, const char *format, ...) {
