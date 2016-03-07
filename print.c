@@ -79,6 +79,8 @@ static int ovprintf_print_number(
 			case 2:
 				data = va_arg(args, signed long long int);
 				break;
+			default:
+				return 0;
 		}
 		if (data < 0) {
 			printer_print(printer, '-');
@@ -103,6 +105,8 @@ static int ovprintf_print_number(
 			case DSIZE_SIZE_T:
 				data = va_arg(args, size_t);
 				break;
+			default:
+				return 0;
 		}
 		count += ovprintf_print_number_(data, printer, isUpper, base, width, addSeps);
 	}
