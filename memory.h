@@ -48,7 +48,14 @@ struct mmap_entry {
 	uint32_t type;
 } __attribute__((packed));
 
-typedef void (*mmap_iterator)(struct mmap_entry *entry);
-void mmap_iterate(void* mmap, uint32_t length, mmap_iterator iterator);
+#define MMAP_ENTRY_TYPE_AVAILABLE 1
+
+struct mmap_iterator;
+typedef void (*mmap_iterator_iterate_t)(struct mmap_iterator* self, struct mmap_entry* entry);
+struct mmap_iterator {
+	mmap_iterator_iterate_t iterate;
+};
+
+void mmap_iterate(void* mmap, uint32_t length, struct mmap_iterator *iterator);
 
 #endif /*__ASM_FILE__*/
