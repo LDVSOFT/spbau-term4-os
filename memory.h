@@ -17,6 +17,7 @@
 
 #ifndef __ASM_FILE__
 
+#include "multiboot.h"
 #include <stdint.h>
 
 #define BOOTMEM_SIZE      (4ull * 1024ull * 1024ull * 1024ull)
@@ -39,5 +40,15 @@ static inline void *va(phys_t addr)
 static inline uintmax_t get_bits(uintmax_t data, int start_bit, int count) {
 	return (data >> start_bit) & ((UINTMAX_C(1) << count) - 1);
 }
+
+struct mmap_entry {
+	uint32_t size;
+	uint64_t base_addr;
+	uint64_t length;
+	uint32_t type;
+} __attribute__((packed));
+
+typedef void (*mmap_iterator)(struct mmap_entry *entry);
+void mmap_iterate(void* mmap, uint32_t length, mmap_iterator iterator);
 
 #endif /*__ASM_FILE__*/
