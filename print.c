@@ -203,6 +203,7 @@ static int ovprintf(const char *format, va_list args, struct printer *printer) {
 					case 'X':
 						count += ovprintf_print_number(args, printer, dSize, 1, 1, 16, 0, 0);
 						isOver = 1;
+						break;
 					// Pointer (p)
 					case 'p':
 						count += ovprintf_print_number(args, printer, DSIZE_SIZE_T, 1, 1, 16, sizeof(size_t) * 2, 1);
