@@ -15,19 +15,47 @@ void mmap_iterate(void* mmap, uint32_t length, struct mmap_iterator* iterator) {
 // Bootstrap allocator's mmap
 // Contains forbid-kernel region, also has actuall holes
 // These holes is memory allocated by bootstrap allocator
+#define BOOTSTRAP_MMAP_MAX_LENGTH 64
+
 static int bootstrap_mmap_length = 0;
-static struct mmap_entry bootstrap_mmap[32];
-
-static void bootstrap_copy_mmap_entry(struct mmap_iterator self, struct mmap_entry* entry) {
-	struct mmap_entry* bootstrap_mmap_entry = &bootstrap_mmap[bootstrap_mmap_length];
-	*bootstrap_mmap_entry = *entry;
-	bootstrap_mmap->size = sizeof(struct mmap_entry);
-}
-
-static struct mmap_iterator bootstrap_copy_iterator = {(mmap_iterator_iterate_t)bootstrap_copy_mmap_entry};
+static struct mmap_entry bootstrap_mmap[BOOTSTRAP_MMAP_MAX_LENGTH];
 
 extern char text_phys_begin[];
 extern char bss_phys_end[];
+
+static int __bootstrap_init_get() {
+	if (bootstrap_mmap_length == BOOTSTRAP_MMAP_MAX_LENGTH) {
+		printf("ERROR: BOOTSTRAP ALLOCATOR MMAP DEPLETED.\n");
+		while (1) ;
+	}
+	return bootstrap_mmap_length++;
+}
+
+static void __bootstrap_init_mmap(struct mmap_iterator self, struct mmap_entry* entry) {
+	if ((phys_t)bss_phys_end <= entry->base_addr || entry->base_addr + entry->length <= (phys_t)text_phys_begin) {
+		struct mmap_entry* bootstrap_mmap_entry = &bootstrap_mmap[__bootstrap_init_get()];
+		*bootstrap_mmap_entry = *entry;
+		bootstrap_mmap_entry->size = sizeof(struct mmap_entry);
+	} else {
+		if (entry->base_addr < (phys_t)text_phys_begin) { // Is something before kernel?
+			struct mmap_entry* bootstrap_mmap_entry = &bootstrap_mmap[__bootstrap_init_get()];
+			bootstrap_mmap_entry->size = sizeof(struct mmap_entry);
+			bootstrap_mmap_entry->base_addr = entry->base_addr;
+			bootstrap_mmap_entry->length = (uint64_t)text_phys_begin - entry->base_addr;
+			bootstrap_mmap_entry->type = entry->type;
+		}
+		// We will not add kernel region, because this allocator treats holes in mmap as allocated
+		if ((phys_t)bss_phys_end < entry->base_addr + entry->length) { // Is something after kernel?
+			struct mmap_entry* bootstrap_mmap_entry = &bootstrap_mmap[__bootstrap_init_get()];
+			bootstrap_mmap_entry->size = sizeof(struct mmap_entry);
+			bootstrap_mmap_entry->base_addr = (phys_t)bss_phys_end;
+			bootstrap_mmap_entry->length = entry->base_addr + entry->length - (phys_t)bss_phys_end;
+			bootstrap_mmap_entry->type = entry->type;
+		}
+	}
+}
+
+static struct mmap_iterator bootstrap_init_iterator = {(mmap_iterator_iterate_t)__bootstrap_init_mmap};
 
 void bootstrap_init_mmap() {
 	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
@@ -36,18 +64,8 @@ void bootstrap_init_mmap() {
 		while (1) ;
 	}
 
-	// Add kernel region to mmap first.
-	// After that, any hit will see this region occupied,
-	// so the entry later that it's occupied will not be taken into account.
-	// Hacky but nice
-	struct mmap_entry* entry = &bootstrap_mmap[bootstrap_mmap_length++];
-	entry->size = sizeof(struct mmap_entry);
-	entry->base_addr = (phys_t)text_phys_begin;
-	entry->length = ((phys_t)bss_phys_end) - ((phys_t)text_phys_begin);
-	entry->type = 0;
-
-	// Now copy all old regions
-	mmap_iterate(va(info->mmap_addr), info->mmap_length, &bootstrap_copy_iterator);
+	// Now copy all old regions, adding kernel one on the wat
+	mmap_iterate(va(info->mmap_addr), info->mmap_length, &bootstrap_init_iterator);
 }
 
 struct bootstrap_alloc_iterator {

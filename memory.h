@@ -48,6 +48,7 @@ struct mmap_entry {
 	uint32_t type;
 } __attribute__((packed));
 
+#define MMAP_ENTRY_TYPE_OCCUPIED  0
 #define MMAP_ENTRY_TYPE_AVAILABLE 1
 
 struct mmap_iterator;
