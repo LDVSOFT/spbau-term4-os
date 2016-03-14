@@ -21,6 +21,6 @@ void main(void) {
 	interrupt_enable();
 
 	while (1) {
-		__asm__ ("hlt");
+		hlt();
 	}
 }

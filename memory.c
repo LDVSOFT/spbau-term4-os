@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "print.h"
+#include "halt.h"
 
 extern const uint32_t mboot_info;
 
@@ -25,8 +26,7 @@ extern char bss_phys_end[];
 
 static int __bootstrap_init_get() {
 	if (bootstrap_mmap_length == BOOTSTRAP_MMAP_MAX_LENGTH) {
-		printf("ERROR: BOOTSTRAP ALLOCATOR MMAP DEPLETED.\n");
-		while (1) ;
+		halt("Bootstrap allocator: mmap buffer is depleted.\n");
 	}
 	return bootstrap_mmap_length++;
 }
@@ -60,8 +60,7 @@ static struct mmap_iterator bootstrap_init_iterator = {(mmap_iterator_iterate_t)
 void bootstrap_init_mmap() {
 	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
 	if ((info->flags & (1 << MBOOT_INFO_MMAP)) == 0) {
-		printf("ERROR: No MMAP present, hanging up!");
-		while (1) ;
+		halt("No MMAP present.\n");
 	}
 
 	// Now copy all old regions, adding kernel one on the wat
