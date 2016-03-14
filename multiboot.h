@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+extern uint32_t mboot_info;
+
 struct mboot_info {
 	uint32_t flags;
 	#define MBOOT_INFO_MEM_REGIONS      0

@@ -1,6 +1,5 @@
-#include "memory.h"
+#include "bootstrap-alloc.h"
 #include "buddy.h"
-#include "multiboot.h"
 #include "halt.h"
 
 struct buddy_allocator buddy_allocator;
@@ -109,9 +108,8 @@ static void buddy_init_iterator_init(struct buddy_init_iterator* self) {
 }
 
 void buddy_init() {
-	if (bootstrap_mmap_length == 0) {
-		halt("Bootstrap allocator not ready for buddy allocator.\n");
-	}
+	bootstrap_init_mmap();
+
 	struct buddy_init_iterator iterator;
 	buddy_init_iterator_init(&iterator);
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
@@ -133,7 +131,7 @@ phys_t buddy_alloc(int level) {
 		++alloc_level;
 	}
 	if (alloc_level == BUDDY_LEVELS) {
-		return NULL;
+		return (phys_t)NULL;
 	}
 
 	buddy_node_no result = buddy_allocator.node_list_starts[alloc_level].next;

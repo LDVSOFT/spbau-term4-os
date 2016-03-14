@@ -15,8 +15,6 @@
 #define PA(x)             ((x) - HIGH_BASE)
 #define VA(x)             ((x) + HIGH_BASE)
 
-#define NULL              0
-
 #ifndef __ASM_FILE__
 
 #include "multiboot.h"
@@ -60,11 +58,5 @@ struct mmap_iterator {
 };
 
 void mmap_iterate(void* mmap, uint32_t length, struct mmap_iterator *iterator);
-
-extern int bootstrap_mmap_length;
-extern struct mmap_entry bootstrap_mmap[];
-
-void bootstrap_init_mmap();
-void* bootstrap_alloc(uint32_t size);
 
 #endif /*__ASM_FILE__*/

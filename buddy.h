@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory.h"
+#include <stddef.h>
 
 #define BUDDY_LEVELS 21
 #define BUDDY_MAX_NODE_LENGTH (PAGE_LENGTH * (1 << (BUDDY_LEVELS - 1)))
@@ -26,6 +27,6 @@ struct buddy_allocator {
 	struct buddy_node* nodes;
 };
 
-void buddy_init(void* mmap, uint32_t mmap_length);
+void buddy_init();
 phys_t buddy_alloc(int level);
 void buddy_free(phys_t pointer);
