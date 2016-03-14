@@ -18,8 +18,8 @@ void mmap_iterate(void* mmap, uint32_t length, struct mmap_iterator* iterator) {
 // These holes is memory allocated by bootstrap allocator
 #define BOOTSTRAP_MMAP_MAX_LENGTH 64
 
-static int bootstrap_mmap_length = 0;
-static struct mmap_entry bootstrap_mmap[BOOTSTRAP_MMAP_MAX_LENGTH];
+int bootstrap_mmap_length = 0;
+struct mmap_entry bootstrap_mmap[BOOTSTRAP_MMAP_MAX_LENGTH];
 
 extern char text_phys_begin[];
 extern char bss_phys_end[];
