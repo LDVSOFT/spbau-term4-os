@@ -1,6 +1,8 @@
 #include "bootstrap-alloc.h"
+#include "memory.h"
 #include "buddy.h"
 #include "halt.h"
+#include "print.h"
 
 struct buddy_allocator buddy_allocator;
 
@@ -92,7 +94,8 @@ static void __buddy_init_iterate(struct buddy_init_iterator* self, struct mmap_e
 	if (entry->type != MMAP_ENTRY_TYPE_AVAILABLE || entry->length == 0) {
 		return;
 	}
-	uint64_t end = entry->base_addr + entry->length;
+	phys_t end = entry->base_addr + entry->length;
+	phys_t pos;
 	switch (self->mode) {
 		case MODE_CALC:
 			if (self->max_memory < end) {
@@ -101,7 +104,7 @@ static void __buddy_init_iterate(struct buddy_init_iterator* self, struct mmap_e
 			break;
 		case MODE_INIT_LOW:
 		case MODE_INIT_HIGH:
-			phys_t pos = entry->base_addr;
+			pos = entry->base_addr;
 			pos = (pos + PAGE_SIZE - 1) % PAGE_SIZE; // Align start
 			if (self->mode == MODE_INIT_HIGH && pos < BOOTMEM_SIZE) {
 				pos = BOOTMEM_SIZE;
@@ -129,9 +132,10 @@ void buddy_init() {
 	struct buddy_init_iterator iterator;
 	buddy_init_iterator_init(&iterator);
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
-
 	buddy_allocator.nodes_count = iterator.max_memory / PAGE_SIZE;
-	buddy_allocator.nodes = (struct buddy_node*) bootstrap_alloc(buddy_allocator.nodes_count * sizeof(struct buddy_node));
+	printf("! buddy_init: there is %p memory, will need %d nodes.\n", iterator.max_memory, buddy_allocator.nodes_count);
+	buddy_allocator.nodes = (struct buddy_node*)va(bootstrap_alloc(buddy_allocator.nodes_count * sizeof(struct buddy_node)));
+	printf("! buddy_init: allocated at %p.\n", buddy_allocator.nodes);
 	for (buddy_node_no i = BUDDY_NODE_START; i != buddy_allocator.nodes_count; ++i) {
 		buddy_node_init(i);
 	}
