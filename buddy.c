@@ -16,7 +16,7 @@ static inline struct buddy_node* buddy_node_from_no(buddy_node_no number) {
 }
 
 static inline buddy_node_no buddy_node_to_no(struct buddy_node* node_p) {
-	if (node_p >= buddy_allocator.nodes) {
+	if (node_p >= buddy_allocator.nodes && node_p < buddy_allocator.nodes + buddy_allocator.nodes_count) {
 		return node_p - buddy_allocator.nodes;
 	} else {
 		return node_p - buddy_allocator.node_list_starts - BUDDY_LEVELS + 1;
@@ -105,7 +105,7 @@ static void __buddy_init_iterate(struct buddy_init_iterator* self, struct mmap_e
 		case MODE_INIT_LOW:
 		case MODE_INIT_HIGH:
 			pos = entry->base_addr;
-			pos = (pos + PAGE_SIZE - 1) % PAGE_SIZE; // Align start
+			pos = ((pos + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE; // Align start
 			if (self->mode == MODE_INIT_HIGH && pos < BOOTMEM_SIZE) {
 				pos = BOOTMEM_SIZE;
 			}
@@ -113,7 +113,7 @@ static void __buddy_init_iterate(struct buddy_init_iterator* self, struct mmap_e
 				if (self->mode == MODE_INIT_LOW && pos >= BOOTMEM_SIZE) {
 					break;
 				}
-				buddy_free(buddy_node_from_address(pos));
+				buddy_free(pos);
 				pos += PAGE_SIZE;
 			}
 			break;
@@ -139,10 +139,12 @@ void buddy_init() {
 	for (buddy_node_no i = BUDDY_NODE_START; i != buddy_allocator.nodes_count; ++i) {
 		buddy_node_init(i);
 	}
+	printf("! buddy_init: init cycle completed.\n");
 
 	// Now all nodes think they are aloocated pages. We need to deallocate the available ones.
 	iterator.mode = MODE_INIT_LOW;
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
+	printf("! buddy_init: memory reserved!\n");
 }
 
 void buddy_init_high() {
@@ -188,7 +190,7 @@ void buddy_free(phys_t pointer) {
 		}
 		struct buddy_node* buddy_p = buddy_node_from_no(buddy);
 		if (!buddy_p->is_free || buddy_p->level != node_p->level) {
-			return;
+			break;
 		}
 
 		// Merge
