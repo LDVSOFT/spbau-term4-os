@@ -76,34 +76,50 @@ static void buddy_node_delete(buddy_node_no node) {
 	node_p->prev = node_p->next = BUDDY_NODE_NULL;
 }
 
+enum buddy_init_iterator_mode {
+		MODE_CALC,
+		MODE_INIT_LOW,
+		MODE_INIT_HIGH
+};
+
 struct buddy_init_iterator {
 	struct mmap_iterator super;
-	int isRealMode;
+	enum buddy_init_iterator_mode mode;
 	uint64_t max_memory;
 };
 
-static void __buddy_init_iretate(struct buddy_init_iterator* self, struct mmap_entry* entry) {
+static void __buddy_init_iterate(struct buddy_init_iterator* self, struct mmap_entry* entry) {
 	if (entry->type != MMAP_ENTRY_TYPE_AVAILABLE || entry->length == 0) {
 		return;
 	}
 	uint64_t end = entry->base_addr + entry->length;
-	if (! self->isRealMode) {
-		if (self->max_memory < end) {
-			self->max_memory = end;
-		}
-	} else {
-		phys_t pos = entry->base_addr;
-		pos = (pos + PAGE_SIZE - 1) % PAGE_SIZE; // Align start
-		while (pos + PAGE_SIZE <= end) {
-			buddy_free(buddy_node_from_address(pos));
-			pos += PAGE_SIZE;
-		}
+	switch (self->mode) {
+		case MODE_CALC:
+			if (self->max_memory < end) {
+				self->max_memory = end;
+			}
+			break;
+		case MODE_INIT_LOW:
+		case MODE_INIT_HIGH:
+			phys_t pos = entry->base_addr;
+			pos = (pos + PAGE_SIZE - 1) % PAGE_SIZE; // Align start
+			if (self->mode == MODE_INIT_HIGH && pos < BOOTMEM_SIZE) {
+				pos = BOOTMEM_SIZE;
+			}
+			while (pos + PAGE_SIZE <= end) {
+				if (self->mode == MODE_INIT_LOW && pos >= BOOTMEM_SIZE) {
+					break;
+				}
+				buddy_free(buddy_node_from_address(pos));
+				pos += PAGE_SIZE;
+			}
+			break;
 	}
 }
 
 static void buddy_init_iterator_init(struct buddy_init_iterator* self) {
-	self->super.iterate = (mmap_iterator_iterate_t)__buddy_init_iretate;
-	self->isRealMode = 0;
+	self->super.iterate = (mmap_iterator_iterate_t)__buddy_init_iterate;
+	self->mode = MODE_CALC;
 	self->max_memory = 0;
 }
 
@@ -121,7 +137,14 @@ void buddy_init() {
 	}
 
 	// Now all nodes think they are aloocated pages. We need to deallocate the available ones.
-	iterator.isRealMode = 1;
+	iterator.mode = MODE_INIT_LOW;
+	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
+}
+
+void buddy_init_high() {
+	struct buddy_init_iterator iterator;
+	buddy_init_iterator_init(&iterator);
+	iterator.mode = MODE_INIT_HIGH;
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
 }
 

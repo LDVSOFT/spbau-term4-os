@@ -28,5 +28,6 @@ struct buddy_allocator {
 };
 
 void buddy_init();
+void buddy_init_high();
 phys_t buddy_alloc(int level);
 void buddy_free(phys_t pointer);
