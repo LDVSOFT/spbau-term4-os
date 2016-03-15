@@ -1,5 +1,5 @@
 #include "memory.h"
-#include "print.h"
+#include "log.h"
 
 void mmap_iterate(void* mmap, uint32_t length, struct mmap_iterator* iterator) {
 	struct mmap_entry* entry = (struct mmap_entry*)mmap;
@@ -17,10 +17,10 @@ struct print_mmap_iterator {
 
 static void __print_mmap(struct print_mmap_iterator* self, struct mmap_entry* entry) {
 	if (self->last != entry->base_addr) {
-		printf("[%p .. %p) HOLE\n", self->last, entry->base_addr);
+		log_tagged(LEVEL_LOG, "print_mmap", "[%p .. %p) HOLE", self->last, entry->base_addr);
 	}
 	phys_t end = entry->base_addr + entry->length;
-	printf("[%p .. %p) %s\n", entry->base_addr, end, entry->type == MMAP_ENTRY_TYPE_AVAILABLE ? "Available" : "Reserved");
+	log_tagged(LEVEL_LOG, "print_mmap", "[%p .. %p) %s", entry->base_addr, end, entry->type == MMAP_ENTRY_TYPE_AVAILABLE ? "Available" : "Reserved");
 	self->last = end;
 }
 
@@ -30,7 +30,7 @@ static void print_mmap_iterator_init(struct print_mmap_iterator* self) {
 }
 
 void print_mmap(void* mmap, uint32_t length) {
-	printf("MMAP at %p, length = %u:\n", mmap, length);
+	log(LEVEL_LOG, "MMAP at %p, length = %u:", mmap, length);
 	struct print_mmap_iterator iterator;
 	print_mmap_iterator_init(&iterator);
 	mmap_iterate(mmap, length, (struct mmap_iterator*)&iterator);

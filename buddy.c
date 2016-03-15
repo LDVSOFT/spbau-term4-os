@@ -1,8 +1,7 @@
 #include "bootstrap-alloc.h"
 #include "memory.h"
 #include "buddy.h"
-#include "halt.h"
-#include "print.h"
+#include "log.h"
 
 struct buddy_allocator buddy_allocator;
 
@@ -133,18 +132,18 @@ void buddy_init() {
 	buddy_init_iterator_init(&iterator);
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
 	buddy_allocator.nodes_count = iterator.max_memory / PAGE_SIZE;
-	printf("! buddy_init: there is %p memory, will need %d nodes.\n", iterator.max_memory, buddy_allocator.nodes_count);
+	log(LEVEL_INFO, "There is %p memory, will need %d nodes.", iterator.max_memory, buddy_allocator.nodes_count);
 	buddy_allocator.nodes = (struct buddy_node*)va(bootstrap_alloc(buddy_allocator.nodes_count * sizeof(struct buddy_node)));
-	printf("! buddy_init: allocated at %p.\n", buddy_allocator.nodes);
+	log(LEVEL_LOG, "Allocated at %p.", buddy_allocator.nodes);
 	for (buddy_node_no i = BUDDY_NODE_START; i != buddy_allocator.nodes_count; ++i) {
 		buddy_node_init(i);
 	}
-	printf("! buddy_init: init cycle completed.\n");
+	log(LEVEL_V, "Nodes init cycle completed.");
 
 	// Now all nodes think they are aloocated pages. We need to deallocate the available ones.
 	iterator.mode = MODE_INIT_LOW;
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
-	printf("! buddy_init: memory reserved!\n");
+	log(LEVEL_LOG, "Low memory freed.");
 }
 
 void buddy_init_high() {
@@ -152,6 +151,7 @@ void buddy_init_high() {
 	buddy_init_iterator_init(&iterator);
 	iterator.mode = MODE_INIT_HIGH;
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
+	log(LEVEL_LOG, "High memory freed.");
 }
 
 phys_t buddy_alloc(int level) {
