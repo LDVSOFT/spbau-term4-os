@@ -7,6 +7,10 @@
 #define HIGH_BASE         0xffff800000000000
 #define PHYSICAL_BASE     0x0000000000000000
 
+#define KERNEL_SIZE       (2ull * 1024ull * 1024ull * 1024ull)
+
+#define BIG_PAGE_SIZE     1 << 21
+
 #define KERNEL_CODE       0x18
 #define KERNEL_DATA       0x20
 

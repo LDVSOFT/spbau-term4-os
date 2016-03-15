@@ -14,7 +14,7 @@ AOBJ:= $(ASM:.S=.o)
 ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c halt.c buddy.c \
-	bootstrap-alloc.c
+	bootstrap-alloc.c paging.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
