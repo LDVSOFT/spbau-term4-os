@@ -8,6 +8,7 @@
 #define PHYSICAL_BASE     0x0000000000000000
 
 #define KERNEL_SIZE       (2ull * 1024ull * 1024ull * 1024ull)
+#define BIOS_SIZE         (1ull * 1024ull * 1024ull)
 
 #define BIG_PAGE_SIZE     1 << 21
 
@@ -51,8 +52,9 @@ struct mmap_entry {
 	uint64_t length;
 	uint32_t type;
 } __attribute__((packed));
+#define MMAP_ENTRY_SIZE (sizeof(struct mmap_entry) - sizeof(uint32_t))
 
-#define MMAP_ENTRY_TYPE_OCCUPIED  0
+#define MMAP_ENTRY_TYPE_RESERVED  0
 #define MMAP_ENTRY_TYPE_AVAILABLE 1
 
 struct mmap_iterator;
@@ -62,5 +64,6 @@ struct mmap_iterator {
 };
 
 void mmap_iterate(void* mmap, uint32_t length, struct mmap_iterator *iterator);
+void print_mmap(void* mmap, uint32_t length);
 
 #endif /*__ASM_FILE__*/
