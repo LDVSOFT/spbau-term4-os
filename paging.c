@@ -24,7 +24,7 @@ static void paging_build_iterator_init(struct paging_build_iterator* self) {
 static phys_t paging_new_page() {
 	phys_t res = buddy_alloc(0);
 	pte_t* res_p = (pte_t*)va(res);
-	for (int i = 0; i != 512; ++i) {
+	for (int i = 0; i != PTE_COUNT; ++i) {
 		*(res_p + i) = 0ull;
 	}
 	return res;
@@ -75,13 +75,13 @@ void paging_build() {
 
 void print_paging(pte_t pml4) {
 	log(LEVEL_VVV, "CR3: PML4 at %p.", pte_phys(pml4));
-	for (int i4 = 0; i4 != 512; ++i4) {
+	for (int i4 = 0; i4 != PTE_COUNT; ++i4) {
 		pte_t pml4e = *( (pte_t*)va(pte_phys(pml4)) + i4 );
 		if (!pte_present(pml4e)) {
 			continue;
 		}
 		log(LEVEL_VVV, "  PML4E %3d: PDPT at %p, user=%d, write=%d.", i4, pte_phys(pml4e), pte_user(pml4e), pte_write(pml4e));
-		for (int i3 = 0; i3 != 512; ++i3) {
+		for (int i3 = 0; i3 != PTE_COUNT; ++i3) {
 			pte_t pdpte = *( (pte_t*)va(pte_phys(pml4e)) + i3 );
 			if (!pte_present(pdpte)) {
 				continue;
@@ -91,7 +91,7 @@ void print_paging(pte_t pml4) {
 				continue;
 			}
 			log(LEVEL_VVV, "    PDPTE %3d: PD at %p, user=%d, write=%d.", i3, pte_phys(pdpte), pte_user(pdpte), pte_write(pdpte));
-			for (int i2 = 0; i2 != 512; ++i2) {
+			for (int i2 = 0; i2 != PTE_COUNT; ++i2) {
 				pte_t pde = *( (pte_t*)va(pte_phys(pdpte)) + i2 );
 				if (!pte_present(pde)) {
 					continue;
@@ -101,7 +101,7 @@ void print_paging(pte_t pml4) {
 					continue;
 				}
 				log(LEVEL_VVV, "      PDE %3d: PT at %p, user=%d, write=%d.", i2, pte_phys(pde), pte_user(pde), pte_write(pde));
-				for (int i1 = 0; i1 != 512; ++i2) {
+				for (int i1 = 0; i1 != PTE_COUNT; ++i2) {
 					pte_t pte = *( (pte_t*)va(pte_phys(pde)) + i1 );
 					if (!pte_present(pte)) {
 						continue;

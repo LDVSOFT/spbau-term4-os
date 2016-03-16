@@ -8,6 +8,8 @@
 
 typedef uint64_t pte_t;
 
+#define PTE_COUNT (PAGE_SIZE / sizeof(pte_t))
+
 #define PTE_PRESENT ((pte_t)1 << 0)
 #define PTE_WRITE   ((pte_t)1 << 1)
 #define PTE_USER    ((pte_t)1 << 2)
