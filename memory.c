@@ -17,10 +17,10 @@ struct print_mmap_iterator {
 
 static void __print_mmap(struct print_mmap_iterator* self, struct mmap_entry* entry) {
 	if (self->last != entry->base_addr) {
-		log_tagged(LEVEL_LOG, "print_mmap", "[%p .. %p) HOLE", self->last, entry->base_addr);
+		log_tagged(LEVEL_VVV, "print_mmap", "[%p .. %p) HOLE", self->last, entry->base_addr);
 	}
 	phys_t end = entry->base_addr + entry->length;
-	log_tagged(LEVEL_LOG, "print_mmap", "[%p .. %p) %s", entry->base_addr, end, entry->type == MMAP_ENTRY_TYPE_AVAILABLE ? "Available" : "Reserved");
+	log_tagged(LEVEL_VVV, "print_mmap", "[%p .. %p) %s", entry->base_addr, end, entry->type == MMAP_ENTRY_TYPE_AVAILABLE ? "Available" : "Reserved");
 	self->last = end;
 }
 

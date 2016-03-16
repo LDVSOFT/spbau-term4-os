@@ -26,7 +26,13 @@ static inline bool pte_large(pte_t pte)
 { return (pte & PTE_LARGE) != 0; }
 
 static inline phys_t pte_phys(pte_t pte)
-{ return (phys_t)((pte >> 12) & 0xfffffffffull); }
+{ return (phys_t)(pte & 0xfffffffff000ull); }
+
+static inline phys_t pte_phys_big(pte_t pte)
+{ return pte_phys(pte) & 0xffffffe00000ull; }
+
+static inline phys_t pte_phys_large(pte_t pte)
+{ return pte_phys(pte) & 0xffffc0000000ull; }
 
 static inline int pml4_i(virt_t addr)
 { return (int)((addr >> 39) & 0x1ff); }
@@ -50,6 +56,9 @@ static inline virt_t canonical(virt_t addr)
 	return addr | 0xffff000000000000llu;
 }
 
+static inline virt_t pml_build(int pml4_i, int pml3_i, int pml2_i, int pml1_i, int off)
+{ return canonical(((pml4_i & 0x1ffull) << 39) | ((pml3_i & 0x1ffull) << 30) | ((pml2_i & 0x1ffull) << 21) | ((pml1_i & 0x1ffull) << 12) | (off & 0xfffull)); }
+
 static inline virt_t linear(virt_t addr)
 { return addr & 0x0000ffffffffffffllu; }
 
@@ -71,5 +80,6 @@ static inline void flush_tlb(void)
 { store_pml4(load_pml4()); }
 
 void paging_build();
+void print_paging(pte_t pml4);
 
 #endif /*__PAGING_H__*/

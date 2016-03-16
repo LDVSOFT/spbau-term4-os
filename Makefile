@@ -6,7 +6,7 @@ RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm
 # -pedantic is off because I want some GCC extensions
 CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding \
 	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -O2 \
-	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option -Wno-unused-parameter
+	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option -Wno-unused-parameter -Wno-unused-function
 LFLAGS := -nostdlib -z max-page-size=0x1000
 
 ASM := bootstrap.S videomem.S interrupt-wrappers.S
@@ -37,6 +37,9 @@ clean:
 
 run: kernel
 	$(QEMU) $(RUNFLAGS) -kernel kernel
+
+run-log: kernel
+	$(QEMU) $(RUNFLAGS) -kernel kernel | tee log.txt | grep -vE '^!'
 
 run-debug: kernel
 	$(QEMU) $(RUNFLAGS) -kernel kernel -s

@@ -5,8 +5,8 @@
 #include "pic.h"
 #include "log.h"
 #include "memory.h"
-#include "bootstrap-alloc.h"
 #include "buddy.h"
+#include "paging.h"
 
 idt_t idt;
 struct idt_ptr idt_ptr;
@@ -17,8 +17,8 @@ void init_memory() {
 	print_mmap(va(info->mmap_addr), info->mmap_length);
 
 	buddy_init();
-	log(LEVEL_LOG, "Bootstrap MMAP (AFTER buddy init):");
-	print_mmap(bootstrap_mmap, bootstrap_mmap_length);
+	paging_build();
+	buddy_init_high();
 }
 
 void main(void) {
