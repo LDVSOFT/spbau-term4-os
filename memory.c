@@ -30,7 +30,7 @@ static void print_mmap_iterator_init(struct print_mmap_iterator* self) {
 }
 
 void print_mmap(void* mmap, uint32_t length) {
-	log(LEVEL_LOG, "MMAP at %p, length = %u:", mmap, length);
+	log(LEVEL_VVV, "MMAP at %p, length = %u:", mmap, length);
 	struct print_mmap_iterator iterator;
 	print_mmap_iterator_init(&iterator);
 	mmap_iterate(mmap, length, (struct mmap_iterator*)&iterator);

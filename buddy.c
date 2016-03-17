@@ -38,6 +38,7 @@ static void buddy_node_init(buddy_node_no node) {
 	node_p->is_free = 0;
 	node_p->prev = BUDDY_NODE_NULL;
 	node_p->next = BUDDY_NODE_NULL;
+	page_descr_init(&node_p->page_descr);
 }
 
 // Convert buddy node number to/from page adress
@@ -205,4 +206,8 @@ void buddy_free(phys_t pointer) {
 		node   = result;
 		node_p = result_p;
 	}
+}
+
+struct page_descr* page_descr_for(phys_t ptr) {
+	return &((struct buddy_node*)buddy_node_from_no(buddy_node_from_address(ptr)))->page_descr;
 }

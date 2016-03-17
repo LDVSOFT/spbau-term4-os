@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory.h"
+#include "page_descr.h"
 #include <stddef.h>
 
 #define BUDDY_LEVELS 21
@@ -19,6 +20,7 @@ struct buddy_node {
 	uint8_t is_free:1;
 	buddy_node_no prev;
 	buddy_node_no next;
+	struct page_descr page_descr;
 };
 
 struct buddy_allocator {
@@ -31,3 +33,5 @@ void buddy_init();
 void buddy_init_high();
 phys_t buddy_alloc(int level);
 void buddy_free(phys_t pointer);
+
+struct page_descr* page_descr_for(phys_t ptr);
