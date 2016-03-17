@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ioport.h"
+#include <stdbool.h>
 
 #define PORT_PIC_MASTER_COMMAND 0x20
 #define PORT_PIC_MASTER_DATA    0x21
@@ -13,4 +14,4 @@
 #define PIC_MODE         1
 
 void pic_init();
-void pic_eoi(int is_slave);
+void pic_eoi(bool is_slave);

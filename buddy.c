@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "buddy.h"
 #include "log.h"
+#include <stdbool.h>
 
 struct buddy_allocator buddy_allocator;
 
@@ -35,7 +36,7 @@ static inline buddy_node_no buddy_node_buddy(buddy_node_no node) {
 static void buddy_node_init(buddy_node_no node) {
 	struct buddy_node* node_p = buddy_node_from_no(node);
 	node_p->level = 0;
-	node_p->is_free = 0;
+	node_p->is_free = false;
 	node_p->prev = BUDDY_NODE_NULL;
 	node_p->next = BUDDY_NODE_NULL;
 	page_descr_init(&node_p->page_descr);
@@ -166,7 +167,7 @@ phys_t buddy_alloc(int level) {
 
 	buddy_node_no result = buddy_allocator.node_list_starts[alloc_level].next;
 	struct buddy_node* result_p = buddy_node_from_no(result);
-	result_p->is_free = 0;
+	result_p->is_free = false;
 	buddy_node_delete(result);
 	while (result_p->level > level) {
 		--result_p->level;
@@ -182,7 +183,7 @@ void buddy_free(phys_t pointer) {
 	if (node_p->is_free) {
 		return;
 	}
-	node_p->is_free = 1;
+	node_p->is_free = true;
 	buddy_node_insert(node, buddy_node_to_no(&buddy_allocator.node_list_starts[node_p->level]));
 	while (node_p->level != BUDDY_LEVELS - 1) {
 		buddy_node_no buddy = buddy_node_buddy(node);

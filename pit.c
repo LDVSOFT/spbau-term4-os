@@ -21,6 +21,5 @@ void pit_handler() {
 		printf("Hello, user! [Message #%d]\n", number);
 		counter = 0;
 	}
-	pic_eoi(0);
-
+	pic_eoi(false);
 }

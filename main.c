@@ -8,6 +8,7 @@
 #include "buddy.h"
 #include "paging.h"
 #include "slab-allocator.h"
+#include <stdbool.h>
 
 idt_t idt;
 struct idt_ptr idt_ptr;
@@ -41,7 +42,7 @@ void main(void) {
 
 	interrupt_enable();
 
-	while (1) {
+	while (true) {
 		hlt();
 	}
 }

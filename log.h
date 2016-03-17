@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdarg.h>
+#include <stdbool.h>
 
 enum level {
 	_LEVEL_MIN  =  0,
@@ -16,7 +17,7 @@ enum level {
 };
 
 void log_set_level(int level);
-void log_set_color_enabled(int color_enabled);
+void log_set_color_enabled(bool color_enabled);
 void vlog_tagged(int level, const char* tag, const char* format, va_list args);
 void log_tagged(int level, const char* tag, const char* format, ...);
 

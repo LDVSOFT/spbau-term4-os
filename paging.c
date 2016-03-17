@@ -34,7 +34,7 @@ static void paging_build_region(virt_t start, virt_t length, phys_t base, pte_t 
 	log(LEVEL_V, "From %p to %p, at %p. PML4 is at %p.", start, start + length, base, pte_phys(pml4));
 	virt_t vpos = start;
 	virt_t pos = base;
-	while(1) {
+	while (true) {
 		pte_t* pml4e_p = (pte_t*)va(pte_phys(pml4)) + pml4_i(vpos);
 		if (!pte_present(*pml4e_p)) {
 			phys_t new_page = paging_new_page();

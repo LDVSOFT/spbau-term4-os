@@ -2,6 +2,7 @@
 #include "serial.h"
 
 #include <stddef.h>
+#include <stdbool.h>
 
 struct printer;
 
@@ -29,7 +30,7 @@ static inline void printer_end(struct printer *printer) {
 
 static int ovprintf_print_number_(
 		uintmax_t value, struct printer *printer,
-		int isUpper, int base, int width, int addSeps, int zeroFill) {
+		bool isUpper, int base, int width, bool addSeps, bool zeroFill) {
 	int count = 0;
 	char buffer[NUMBER_BUFFER_SIZE];
 	int buffer_pos = 0;
@@ -64,7 +65,7 @@ static int ovprintf_print_number_(
 
 static int ovprintf_print_number(
 		va_list args, struct printer *printer,
-		int dSize, int isUnsigned, int isUpper, int base, int width, int addSeps, int zeroFill) {
+		int dSize, bool isUnsigned, bool isUpper, int base, int width, bool addSeps, bool zeroFill) {
 	//serial_puts("\n\nENTERED NUMBER\n\n");
 	int count = 0;
 	if (!isUnsigned) {
@@ -154,10 +155,10 @@ static int ovprintf(const char *format, va_list args, struct printer *printer) {
 			printer_print(printer, *format);
 			++count;
 		} else {
-			int isFirst = 1;
-			int isOver = 0;
+			bool isFirst = true;
+			bool isOver = false;
 			int dSize = 0;
-			int zeroFill = 0;
+			bool zeroFill = false;
 			int width = 0;
 			for (++format; *format != 0 && !isOver; isFirst = 0) {
 				switch (*format) {
@@ -165,7 +166,7 @@ static int ovprintf(const char *format, va_list args, struct printer *printer) {
 					case '%':
 						printer_print(printer, '%');
 						++count;
-						isOver = 1;
+						isOver = true;
 						break;
 					// Size modifiers (hlz)
 					case 'h':
@@ -180,7 +181,7 @@ static int ovprintf(const char *format, va_list args, struct printer *printer) {
 					// View modifiers (0, width)
 					case '0':
 						if (isFirst) {
-							zeroFill = 1;
+							zeroFill = true;
 							break;
 						}
 					case '1':
@@ -197,42 +198,42 @@ static int ovprintf(const char *format, va_list args, struct printer *printer) {
 					// Char (c)
 					case 'c':
 						count += ovprintf_print_char(args, printer, dSize);
-						isOver = 1;
+						isOver = true;
 						break;
 					// String (s)
 					case 's':
 						count += ovprintf_print_string(args, printer, dSize);
-						isOver = 1;
+						isOver = true;
 						break;
 					// Number (diuoxX)
 					case 'd':
 					case 'i':
-						count += ovprintf_print_number(args, printer, dSize, 0, 0, 10, width, 0, zeroFill);
-						isOver = 1;
+						count += ovprintf_print_number(args, printer, dSize, false, false, 10, width, false, zeroFill);
+						isOver = true;
 						break;
 					case 'u':
-						count += ovprintf_print_number(args, printer, dSize, 1, 0, 10, width, 0, zeroFill);
-						isOver = 1;
+						count += ovprintf_print_number(args, printer, dSize, true , false, 10, width, false, zeroFill);
+						isOver = true;
 						break;
 					case 'o':
-						count += ovprintf_print_number(args, printer, dSize, 1, 0, 8, width, 0, zeroFill);
-						isOver = 1;
+						count += ovprintf_print_number(args, printer, dSize, true , false, 8 , width, false, zeroFill);
+						isOver = true;
 						break;
 					case 'x':
-						count += ovprintf_print_number(args, printer, dSize, 1, 0, 16, width, 0, zeroFill);
-						isOver = 1;
+						count += ovprintf_print_number(args, printer, dSize, true , false, 16, width, false, zeroFill);
+						isOver = true;
 						break;
 					case 'X':
-						count += ovprintf_print_number(args, printer, dSize, 1, 1, 16, width, 0, zeroFill);
-						isOver = 1;
+						count += ovprintf_print_number(args, printer, dSize, true , true , 16, width, false, zeroFill);
+						isOver = true;
 						break;
 					// Pointer (p)
 					case 'p':
-						count += ovprintf_print_number(args, printer, DSIZE_SIZE_T, 1, 1, 16, sizeof(size_t) * 2, 1, 1);
-						isOver = 1;
+						count += ovprintf_print_number(args, printer, DSIZE_SIZE_T, true, true, 16, sizeof(size_t) * 2, true, true);
+						isOver = true;
 					// Else
 					default:
-						isOver = 1;
+						isOver = true;
 						break;
 				}
 				if (!isOver) {

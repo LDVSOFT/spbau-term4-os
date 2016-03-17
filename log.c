@@ -2,13 +2,14 @@
 #include "print.h"
 #include "interrupt.h"
 #include <stdarg.h>
+#include <stdbool.h>
 
 static const char* color_reset = "\e[0m";
 
 static const char* colors[_LEVEL_MAX] = {0};
 static int log_level = LEVEL_INFO;
 
-void log_set_color_enabled(int color_enabled) {
+void log_set_color_enabled(bool color_enabled) {
 	if (color_enabled) {
 		colors[_LEVEL_MIN]  = "\e[30m";
 		colors[LEVEL_V]     = "\e[37m";
@@ -59,7 +60,8 @@ void halt_tagged(const char* tag, const char* format, ...) {
 	va_start(args, format);
 	vlog_tagged(LEVEL_FAULT, tag, format, args);
 	va_end(args);
-	while (1) {
+	interrupt_disable();
+	while (true) {
 		hlt();
 	}
 }
