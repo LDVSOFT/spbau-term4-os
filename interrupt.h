@@ -37,6 +37,9 @@ static inline void interrupt_enable()
 static inline void interrupt_disable()
 { __asm__ volatile ("cli"); }
 
+static inline void hlt()
+{ __asm__ volatile ("hlt"); }
+
 // Init IDT pointer
 void interrupt_init_ptr(struct idt_ptr *idt_ptr, idt_t table);
 

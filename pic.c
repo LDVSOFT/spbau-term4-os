@@ -15,7 +15,7 @@ void pic_init() {
 	out8(PORT_PIC_SLAVE_DATA,    PIC_MODE);
 }
 
-void pic_eoi(int is_slave) {
+void pic_eoi(bool is_slave) {
 	// Slave
 	if (is_slave) {
 		out8(PORT_PIC_SLAVE_COMMAND, PIC_COMMAND_EOI);
