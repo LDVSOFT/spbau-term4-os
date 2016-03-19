@@ -69,7 +69,6 @@ void paging_build() {
 	paging_build_region(KERNEL_BASE, KERNEL_SIZE, PHYSICAL_BASE, pml4);
 	print_paging(pml4);
 	store_pml4(pml4);
-	flush_tlb();
 	log(LEVEL_INFO, "Paging upgraded!");
 }
 
