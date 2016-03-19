@@ -21,25 +21,28 @@ DEP := $(ADEP) $(SRC:.c=.d)
 all: kernel
 
 kernel: $(OBJ) kernel.ld
-	$(LD) $(LFLAGS) -T kernel.ld -o $@ $(OBJ)
+	$(LD) $(LFLAGS) $(FLAGS) -T kernel.ld -o $@ $(OBJ)
 
 %.o: %.S
-	$(CC) -D__ASM_FILE__ -g -MMD -c $< -o $@
+	$(CC) $(FLAGS) -D__ASM_FILE__ -g -MMD -c $< -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) $(FLAGS) -MMD -c $< -o $@
 
 -include $(DEP)
 
-.PHONY: clean run run-debug
+.PHONY: clean clean-full run run-log run-debug
 clean:
 	rm -f kernel $(OBJ) $(DEP)
 
+clean-full:
+	rm -f kernel *.o *.d
+
 run: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel
+	$(QEMU) $(RUNFLAGS) -kernel kernel $(FLAGS)
 
 run-log: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel | tee log.txt | grep -vE '^!'
+	$(QEMU) $(RUNFLAGS) -kernel kernel $(FLAGS) | tee log.txt | grep -vE '^!'
 
 run-debug: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel -s
+	$(QEMU) $(RUNFLAGS) -kernel kernel -s $(FLAGS)
