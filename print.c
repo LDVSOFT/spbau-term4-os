@@ -117,14 +117,23 @@ static int ovprintf_print_number(
 	return count;
 }
 
-static int ovprintf_print_string(va_list args, struct printer *printer, int dSize) {
+static int ovprintf_print_string(va_list args, struct printer *printer, int dSize, int width) {
 	int count = 0;
 
 	switch (dSize) {
 		case 0:
-			for (const char *str = va_arg(args, char *); *str != 0; ++str) {
-				printer_print(printer, *str);
-				++count;
+			{
+				int len = 0;
+				const char *str = va_arg(args, const char*);
+				for (const char *p = str; *p != 0; ++p, ++len);
+				while (width > len) {
+					width--;
+					printer_print(printer, ' ');
+				}
+				for ( ; *str != 0; ++str) {
+					printer_print(printer, *str);
+					++count;
+				}
 			}
 			break;
 		// NOPE, I'M NOT GOING TO ADD WIDESTRINGS SUPPORT NOW
@@ -202,7 +211,7 @@ static int ovprintf(const char *format, va_list args, struct printer *printer) {
 						break;
 					// String (s)
 					case 's':
-						count += ovprintf_print_string(args, printer, dSize);
+						count += ovprintf_print_string(args, printer, dSize, width);
 						isOver = true;
 						break;
 					// Number (diuoxX)
