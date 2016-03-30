@@ -1,5 +1,6 @@
 #include "print.h"
 #include "serial.h"
+#include "string.h"
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -123,9 +124,8 @@ static int ovprintf_print_string(va_list args, struct printer *printer, int dSiz
 	switch (dSize) {
 		case 0:
 			{
-				int len = 0;
 				const char *str = va_arg(args, const char*);
-				for (const char *p = str; *p != 0; ++p, ++len);
+				int len = strlen(str);
 				while (width > len) {
 					width--;
 					printer_print(printer, ' ');

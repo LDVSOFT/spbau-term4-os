@@ -1,4 +1,3 @@
-#include "kernel_config.h"
 #include "interrupt.h"
 #include "serial.h"
 #include "pit.h"
@@ -10,6 +9,7 @@
 #include "paging.h"
 #include "slab-allocator.h"
 #include "threads.h"
+#include "cmdline.h"
 
 #include <stdbool.h>
 
@@ -56,23 +56,34 @@ void* thread_test(struct thread_test_data* data) {
 }
 
 void main(void) {
-	log_set_color_enabled(LOG_COLOR);
-	log_set_level(LOG_LEVEL);
+	log_set_level(LEVEL_LOG);
+	log_set_color_enabled(false);
 
 	serial_init();
-	pic_init();
-	log(LEVEL_INFO, "Serial & pic ready.");
+	log(LEVEL_INFO, "Serial ready.");
 
+	read_cmdline();
+
+	log(LEVEL_INFO, "Preparing memory...");
 	init_memory();
 	log(LEVEL_INFO, "Memory is ready.");
 
-	interrupt_init();
-	pit_init();
-	log(LEVEL_INFO, "IDT & pit are ready.");
+	log(LEVEL_INFO, "Preparing PIC...");
+	pic_init();
+	log(LEVEL_INFO, "PIC is ready.");
 
+	log(LEVEL_INFO, "Preparing interrupts...");
+	interrupt_init();
+	log(LEVEL_INFO, "Interrputs are ready.");
+
+	log(LEVEL_INFO, "Preparing PIT...");
+	pit_init();
+	log(LEVEL_INFO, "PIT is ready.");
+
+	log(LEVEL_INFO, "Preparing scheduler...");
 	scheduler_init();
 	interrupt_enable();
-	log(LEVEL_INFO, "Scheduler is ready; multithreading is on!");
+	log(LEVEL_INFO, "Scheduler is ready, multithreading is on.");
 
 	struct thread_test_data root;
 	root.level = 0;
@@ -88,7 +99,7 @@ void main(void) {
 				}
 			}
 		}
-		printf("Hello from main %d\n!", a);
+		printf("Hello from main %d!\n", a);
 		hlt();
 	}
 }
