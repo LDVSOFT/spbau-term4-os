@@ -18,6 +18,7 @@
 0. `videomem.S` -- from upstream, VGA utils.
 0. `main.c` -- from upstream, main function. Currecntly setups all stuff (PIC, PIT, Memory, IDT & Serial -- all here).
 0. `multiboot.h` -- defines multiboot info struct
+0. `cmdline.h`, `cmdline.c` -- parsing cmdline with options.
 
 ## Memory
 
@@ -28,6 +29,14 @@
 0. `paging.h`, `paging.c` -- from upstream (WITH PATCHED `pte_phys`), paging utils.
 0. `page_descr.h` -- page desription struct, Buddy stores these for stuff (i.e. SLAB owning that page)
 
+## Threading
+0. `threads.h`, `threads.c` -- threads stuff: critical section, threads management, scheduling.
+0. `threads-wrappers.S` -- assembly code for `threads.c`.
+
 ## Output
 0. `print.h`, `print.c` -- `v?s?printf` functions, implemented via `ovprintf` that takes `strcut printer*` and executes pointer-passed handler
 0. `log.h`, `log.c` -- high-level output for logging messages and errors (halting too).
+
+## Utils
+0. `string.h`, `string.c` -- string utils.
+0. `test.h`, `test.c` -- tesing.
