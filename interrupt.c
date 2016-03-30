@@ -1,6 +1,7 @@
 #include "interrupt.h"
 #include "memory.h"
 #include "log.h"
+#include "threads.h"
 
 #include <stddef.h>
 
@@ -41,7 +42,7 @@ void interrupt_set(uint8_t id, interrupt_handler_t handler) {
 
 void interrupt_handler(struct interrupt_info* info) {
 	int id = info->id;
-	log(LEVEL_VV, "INT %d...", info->id);
+	log(LEVEL_VVV, "INT %d...", info->id);
 	if (handlers[id] == NULL) {
 		log(LEVEL_WARN, "No handler for INT %u (error no %u)!", info->id, info->error);
 	} else {
@@ -75,13 +76,30 @@ const char* interrupt_message(int id) {
 	}
 }
 
+static void backtrace(uint64_t rbp, uintptr_t stack_begin, uintptr_t stack_end)
+{
+	int depth = 0;
+	while (rbp >= stack_begin && rbp < stack_end - 2 * sizeof(uint64_t)) {
+		uint64_t* stack_ptr = (uint64_t*) rbp;
+		log(LEVEL_ERROR, "%2d: %p", depth++, (void *)stack_ptr[1]);
+		rbp = stack_ptr[0];
+	}
+}
+
 void interrupt_handler_halt(struct interrupt_info* info) {
-	log(LEVEL_ERROR, "Interuption %u: %s. Error code %u.", info->id, interrupt_message(info->id), info->error);
+	log(LEVEL_ERROR, "Interruption %u: %s. Error code %u.", info->id, interrupt_message(info->id), info->error);
 	#define log_r(x) log(LEVEL_ERROR, "%s=%p", #x, info->x)
 	log_r(rip); log_r(cs ); log_r(rflags);
 	log_r(rax); log_r(rbx); log_r(rcx); log_r(rdx);
 	log_r(rdi); log_r(rsi); log_r(rbp); log_r(rsp);
 	log_r(r8 ); log_r(r9 ); log_r(r10); log_r(r11);
 	log_r(r12); log_r(r13); log_r(r14); log_r(r15);
+	uint64_t tmp;
+	asm volatile ("movq %%cr2, %0" : "=a"(tmp));
+	log(LEVEL_ERROR, "cr2=%p", tmp);
+
+	struct thread* current = thread_current();
+	backtrace(info->rbp, (uint64_t)current->stack + THREAD_STACK_SIZE, (uint64_t)current->stack);
+
 	halt("UNEXPECTED EXCEPTION");
 }
