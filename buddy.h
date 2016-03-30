@@ -25,6 +25,7 @@ struct buddy_node {
 };
 
 struct buddy_allocator {
+	struct critical_section cs;
 	struct buddy_node node_list_starts[BUDDY_LEVELS];
 	buddy_node_no nodes_count;
 	struct buddy_node* nodes;

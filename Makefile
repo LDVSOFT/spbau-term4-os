@@ -9,24 +9,24 @@ CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding \
 	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option -Wno-unused-parameter -Wno-unused-function
 LFLAGS := -nostdlib -z max-page-size=0x1000
 
-ASM := bootstrap.S videomem.S interrupt-wrappers.S
+ASM := bootstrap.S videomem.S interrupt-wrappers.S threads-wrappers.S
 AOBJ:= $(ASM:.S=.o)
 ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
-	bootstrap-alloc.c paging.c log.c slab-allocator.c
+	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
 all: kernel
 
-kernel: $(OBJ) kernel.ld
+kernel: $(OBJ) kernel.ld Makefile
 	$(LD) $(LFLAGS) $(FLAGS) -T kernel.ld -o $@ $(OBJ)
 
-%.o: %.S
+%.o: %.S Makefile
 	$(CC) $(FLAGS) -D__ASM_FILE__ -g -MMD -c $< -o $@
 
-%.o: %.c
+%.o: %.c Makefile
 	$(CC) $(CFLAGS) $(FLAGS) -MMD -c $< -o $@
 
 -include $(DEP)

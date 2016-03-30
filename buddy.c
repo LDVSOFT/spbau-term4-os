@@ -130,6 +130,7 @@ static void buddy_init_iterator_init(struct buddy_init_iterator* self) {
 void buddy_init(void) {
 	bootstrap_init_mmap();
 
+	cs_init(&buddy_allocator.cs);
 	struct buddy_init_iterator iterator;
 	buddy_init_iterator_init(&iterator);
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
@@ -156,7 +157,7 @@ void buddy_init_high(void) {
 	log(LEVEL_LOG, "High memory freed.");
 }
 
-phys_t buddy_alloc(int level) {
+static phys_t __buddy_alloc(int level) {
 	int alloc_level = level;
 	while (alloc_level < BUDDY_LEVELS && buddy_allocator.node_list_starts[alloc_level].next == BUDDY_NODE_NULL) {
 		++alloc_level;
@@ -177,7 +178,14 @@ phys_t buddy_alloc(int level) {
 	return buddy_node_to_address(result);
 }
 
-void buddy_free(phys_t pointer) {
+phys_t buddy_alloc(int level) {
+	cs_enter(&buddy_allocator.cs);
+	phys_t res = __buddy_alloc(level);
+	cs_leave(&buddy_allocator.cs);
+	return res;
+}
+
+static void __buddy_free(phys_t pointer) {
 	buddy_node_no node = buddy_node_from_address(pointer);
 	struct buddy_node* node_p = buddy_node_from_no(node);
 	if (node_p->is_free) {
@@ -207,6 +215,12 @@ void buddy_free(phys_t pointer) {
 		node   = result;
 		node_p = result_p;
 	}
+}
+
+void buddy_free(phys_t ptr) {
+	cs_enter(&buddy_allocator.cs);
+	__buddy_free(ptr);
+	cs_leave(&buddy_allocator.cs);
 }
 
 struct page_descr* page_descr_for(phys_t ptr) {

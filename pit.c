@@ -1,8 +1,12 @@
 #include "pit.h"
-#include "print.h"
 #include "kernel_config.h"
 #include "pic.h"
 #include "memory.h"
+#include "threads.h"
+
+static void pit_eoi(void) {
+	pic_eoi(false);
+}
 
 void pit_handler(struct interrupt_info* info) {
 	static int counter = 0;
@@ -10,10 +14,11 @@ void pit_handler(struct interrupt_info* info) {
 	++counter;
 	if (counter >= PIT_TICKS) {
 		++number;
-		printf("Hello, user! [Message #%d]\n", number);
 		counter = 0;
+		schedule(pit_eoi, THREAD_NEW_STATE_ALIVE);
+	} else {
+		pic_eoi(false);
 	}
-	pic_eoi(false);
 }
 
 void pit_init(void) {

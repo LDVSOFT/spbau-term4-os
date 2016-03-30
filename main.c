@@ -4,10 +4,13 @@
 #include "pit.h"
 #include "pic.h"
 #include "log.h"
+#include "print.h"
 #include "memory.h"
 #include "buddy.h"
 #include "paging.h"
 #include "slab-allocator.h"
+#include "threads.h"
+
 #include <stdbool.h>
 
 void init_memory(void) {
@@ -19,6 +22,37 @@ void init_memory(void) {
 	paging_build();
 	buddy_init_high();
 	slab_allocators_init();
+}
+
+struct thread_test_data {
+	int level;
+	uint64_t id;
+};
+
+const int MAX_LEVEL = 6;
+
+void* thread_test(struct thread_test_data* data) {
+	log(LEVEL_LOG, "%d: Enter, data=%p.", data->id, data);
+	if (data->level < MAX_LEVEL) {
+		struct thread_test_data left_data;
+		left_data.level = data->level + 1;
+		left_data.id = data->id * 2;
+		struct thread* left = thread_create((thread_func_t)thread_test, &left_data, "test");
+		log(LEVEL_LOG, "%d: Created left = %p.", data->id, left);
+		struct thread_test_data right_data;
+		right_data.level = data->level + 1;
+		right_data.id = data->id * 2 + 1;
+		struct thread* right = thread_create((thread_func_t)thread_test, &right_data, "test");
+		log(LEVEL_LOG, "%d: Created right = %p.", data->id, right);
+		if ((uint64_t)thread_join(left) != left_data.id) {
+			halt("%d: Left return wrong id.");
+		}
+		if ((uint64_t)thread_join(right) != right_data.id) {
+			halt("%d: Right return wrong id.");
+		}
+	}
+	log(LEVEL_LOG, "%d: Exit", data->id);
+	return (void*)data->id;
 }
 
 void main(void) {
@@ -36,9 +70,25 @@ void main(void) {
 	pit_init();
 	log(LEVEL_INFO, "IDT & pit are ready.");
 
+	scheduler_init();
 	interrupt_enable();
+	log(LEVEL_INFO, "Scheduler is ready; multithreading is on!");
+
+	struct thread_test_data root;
+	root.level = 0;
+	root.id = 1;
+	thread_test(&root);
 
 	while (true) {
+		int a = 0;
+		for (int i = 0; i != 1000; ++i) {
+			for (int j = 0; j != 1000; ++j) {
+				for (int k = 0; k != 1000; ++k) {
+					a += i + 2 * j + 3 * k;
+				}
+			}
+		}
+		printf("Hello from main %d\n!", a);
 		hlt();
 	}
 }
