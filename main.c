@@ -10,9 +10,6 @@
 #include "slab-allocator.h"
 #include <stdbool.h>
 
-idt_t idt;
-struct idt_ptr idt_ptr;
-
 void init_memory(void) {
 	log(LEVEL_VVV, "Original MMAP:");
 	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
@@ -33,11 +30,10 @@ void main(void) {
 	log(LEVEL_INFO, "Serial & pic ready.");
 
 	init_memory();
-	log(LEVEL_INFO, "Memory ready.");
+	log(LEVEL_INFO, "Memory is ready.");
 
-	interrupt_init_ptr(&idt_ptr, idt);
-	pit_init(&idt_ptr);
-	interrupt_set_idt(&idt_ptr);
+	interrupt_init();
+	pit_init();
 	log(LEVEL_INFO, "IDT & pit are ready.");
 
 	interrupt_enable();
