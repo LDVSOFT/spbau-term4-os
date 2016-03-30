@@ -29,16 +29,16 @@ struct interrupt {
 typedef struct interrupt idt_t[INTERRUPT_COUNT];
 
 static inline void interrupt_set_idt(const struct idt_ptr *idt_ptr)
-{ __asm__ volatile ("lidt (%0)" : : "a"(idt_ptr)); }
+{ asm volatile ("lidt (%0)" : : "a"(idt_ptr)); }
 
 static inline void interrupt_enable()
-{ __asm__ volatile ("sti"); }
+{ asm volatile ("sti"); }
 
 static inline void interrupt_disable()
-{ __asm__ volatile ("cli"); }
+{ asm volatile ("cli"); }
 
 static inline void hlt()
-{ __asm__ volatile ("hlt"); }
+{ asm volatile ("hlt"); }
 
 // Init IDT pointer
 void interrupt_init_ptr(struct idt_ptr *idt_ptr, idt_t table);
