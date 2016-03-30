@@ -14,7 +14,8 @@ AOBJ:= $(ASM:.S=.o)
 ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
-	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c
+	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c \
+	test.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
@@ -39,7 +40,7 @@ clean-full:
 	rm -f kernel *.o *.d
 
 run: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=10 log_clr=1' $(FLAGS)
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(FLAGS)
 
 run-log: kernel
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=1 log_clr=0' $(FLAGS) | tee log.txt | grep -vE '^!'

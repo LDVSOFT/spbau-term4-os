@@ -179,7 +179,7 @@ void thread_run(struct thread* thread) {
 		scheduler.callback();
 	}
 	interrupt_enable();
-	log(LEVEL_INFO, "Starting thread %s.", thread->name);
+	log(LEVEL_V, "Starting thread %s.", thread->name);
 	data = func(data);
 	interrupt_disable();
 	barrier();
@@ -201,7 +201,7 @@ void* thread_join(struct thread* thread) {
 		cs_leave(&thread->cs);
 
 		if (is_over) {
-			log(LEVEL_LOG, "Deleting dead thread %s.", thread->name);
+			log(LEVEL_V, "Deleting dead thread %s.", thread->name);
 			cs_enter(&scheduler.cs);
 			thread_delete(thread);
 			buddy_free(pa(thread->stack));
@@ -241,14 +241,14 @@ void schedule(schedule_callback_t callback, enum thread_new_state state) {
 	scheduler.callback = callback;
 	scheduler.current = target;
 
-	log(LEVEL_INFO, "Initiate switching %s -> %s...", current->name, target->name);
+	log(LEVEL_V, "Initiate switching %s -> %s...", current->name, target->name);
 	if (current == target) {
 		log(LEVEL_WARN, "Oh, there are the same! Not switching...");
 	} else {
 		barrier();
 		thread_switch(&current->stack_pointer, target->stack_pointer);
 		barrier();
-		log(LEVEL_INFO, "Switched back to %s.", scheduler.current->name);
+		log(LEVEL_V, "Switched back to %s.", scheduler.current->name);
 	}
 
 	if (scheduler.callback != NULL) {
