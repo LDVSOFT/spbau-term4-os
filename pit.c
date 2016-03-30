@@ -12,7 +12,7 @@ void pit_init(const struct idt_ptr *idt_ptr) {
 	interrupt_set(idt_ptr, INTERRUPT_PIT, (uint64_t) &pit_handler_wrapper);
 }
 
-void pit_handler() {
+void pit_handler(void) {
 	static int counter = 0;
 	static int number = 0;
 	++counter;

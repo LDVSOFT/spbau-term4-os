@@ -8,6 +8,6 @@
 extern int bootstrap_mmap_length;
 extern struct mmap_entry bootstrap_mmap[BOOTSTRAP_MMAP_MAX_LENGTH];
 
-void bootstrap_init_mmap();
+void bootstrap_init_mmap(void);
 phys_t bootstrap_alloc(uint32_t size);
 

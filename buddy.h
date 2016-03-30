@@ -2,6 +2,7 @@
 
 #include "memory.h"
 #include "page_descr.h"
+#include "threads.h"
 #include <stddef.h>
 
 #define BUDDY_LEVELS 21
@@ -29,8 +30,8 @@ struct buddy_allocator {
 	struct buddy_node* nodes;
 };
 
-void buddy_init();
-void buddy_init_high();
+void buddy_init(void);
+void buddy_init_high(void);
 phys_t buddy_alloc(int level);
 void buddy_free(phys_t pointer);
 

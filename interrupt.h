@@ -31,13 +31,13 @@ typedef struct interrupt idt_t[INTERRUPT_COUNT];
 static inline void interrupt_set_idt(const struct idt_ptr *idt_ptr)
 { asm volatile ("lidt (%0)" : : "a"(idt_ptr)); }
 
-static inline void interrupt_enable()
+static inline void interrupt_enable(void)
 { asm volatile ("sti"); }
 
-static inline void interrupt_disable()
+static inline void interrupt_disable(void)
 { asm volatile ("cli"); }
 
-static inline void hlt()
+static inline void hlt(void)
 { asm volatile ("hlt"); }
 
 // Init IDT pointer

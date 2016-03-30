@@ -127,7 +127,7 @@ static void buddy_init_iterator_init(struct buddy_init_iterator* self) {
 	self->max_memory = 0;
 }
 
-void buddy_init() {
+void buddy_init(void) {
 	bootstrap_init_mmap();
 
 	struct buddy_init_iterator iterator;
@@ -148,7 +148,7 @@ void buddy_init() {
 	log(LEVEL_LOG, "Low memory freed.");
 }
 
-void buddy_init_high() {
+void buddy_init_high(void) {
 	struct buddy_init_iterator iterator;
 	buddy_init_iterator_init(&iterator);
 	iterator.mode = MODE_INIT_HIGH;

@@ -1,7 +1,7 @@
 #include "pic.h"
 #include "interrupt.h"
 
-void pic_init() {
+void pic_init(void) {
 	// Master
 	out8(PORT_PIC_MASTER_COMMAND, PIC_COMMAND_INIT);
 	out8(PORT_PIC_MASTER_DATA,    INTERRUPT_PIC_MASTER);

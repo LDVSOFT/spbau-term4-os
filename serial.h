@@ -9,6 +9,6 @@
 
 #define SERIAL_FLAG_WRITE_COMPLETE (1 << 5)
 
-void serial_init();
+void serial_init(void);
 void serial_putch(char c);
 void serial_puts(const char *s);

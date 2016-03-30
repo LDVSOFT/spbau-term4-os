@@ -124,7 +124,7 @@ static void slab_big_free(struct slab* slab, void* ptr) {
 
 // Allocator
 
-void slab_allocators_init() {
+void slab_allocators_init(void) {
 	slab_init(&big_slab_struct_allocator, sizeof(struct slab)     , 1);
 	slab_init(&big_slab_node_allocator  , sizeof(struct slab_node), 1);
 }

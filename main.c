@@ -13,7 +13,7 @@
 idt_t idt;
 struct idt_ptr idt_ptr;
 
-void init_memory() {
+void init_memory(void) {
 	log(LEVEL_VVV, "Original MMAP:");
 	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
 	print_mmap(va(info->mmap_addr), info->mmap_length);

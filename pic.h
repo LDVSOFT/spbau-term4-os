@@ -13,5 +13,5 @@
 #define PIC_SLAVE_PORT   2
 #define PIC_MODE         1
 
-void pic_init();
+void pic_init(void);
 void pic_eoi(bool is_slave);

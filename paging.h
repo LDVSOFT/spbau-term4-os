@@ -81,7 +81,7 @@ static inline void flush_tlb_addr(virt_t addr)
 static inline void flush_tlb(void)
 { store_pml4(load_pml4()); }
 
-void paging_build();
+void paging_build(void);
 void print_paging(pte_t pml4);
 
 #endif /*__PAGING_H__*/

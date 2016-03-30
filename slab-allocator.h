@@ -26,7 +26,7 @@ struct slab_allocator {
 	uint16_t obj_align;
 };
 
-void slab_allocators_init();
+void slab_allocators_init(void);
 
 void slab_init(struct slab_allocator* allocator, uint16_t size, uint16_t align);
 void slab_finit(struct slab_allocator* allocator);
