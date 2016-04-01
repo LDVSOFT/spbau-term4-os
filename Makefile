@@ -22,13 +22,13 @@ DEP := $(ADEP) $(SRC:.c=.d)
 all: kernel
 
 kernel: $(OBJ) kernel.ld Makefile
-	$(LD) $(LFLAGS) $(FLAGS) -T kernel.ld -o $@ $(OBJ)
+	$(LD) $(LFLAGS) $(LINK_FLAGS) -T kernel.ld -o $@ $(OBJ)
 
 %.o: %.S Makefile
-	$(CC) $(FLAGS) -D__ASM_FILE__ -g -MMD -c $< -o $@
+	$(CC) $(COMPILE_FLAGS) -D__ASM_FILE__ -g -MMD -c $< -o $@
 
 %.o: %.c Makefile
-	$(CC) $(CFLAGS) $(FLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) $(COMPILE_FLAGS) -MMD -c $< -o $@
 
 -include $(DEP)
 
@@ -40,10 +40,10 @@ clean-full:
 	rm -f kernel *.o *.d
 
 run: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(FLAGS)
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(RUN_FLAGS)
 
 run-log: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=1 log_clr=0' $(FLAGS) | tee log.txt | grep -vE '^!'
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=1 log_clr=0' $(RUN_FLAGS) | tee log.txt | grep -vE '^!'
 
 run-debug: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=10 log_clr=1' -s $(FLAGS)
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=10 log_clr=1' -s $(RUN_FLAGS)
