@@ -10,7 +10,15 @@
 // We don't care about SMP $)
 // Either we care about sheduling done right
 
-static volatile bool is_mutlithread = false;
+static uint64_t hard_lock() {
+	uint64_t rflags = read_rflags();
+	interrupt_disable();
+	return rflags;
+}
+
+static void hard_unlock(uint64_t rflags) {
+	write_rflags(rflags);
+}
 
 void cs_init(struct critical_section* section) {
 	section->is_occupied = false;
@@ -20,10 +28,7 @@ void cs_finit(struct critical_section* section) {
 }
 
 void cs_enter(struct critical_section* section) {
-	if (!is_mutlithread) {
-		return;
-	}
-	interrupt_disable();
+	uint64_t rflags = hard_lock();
 	barrier();
 	while (section->is_occupied) {
 		schedule(NULL, THREAD_NEW_STATE_ALIVE);
@@ -31,25 +36,20 @@ void cs_enter(struct critical_section* section) {
 	}
 	section->is_occupied = true;
 	barrier();
-	interrupt_enable();
+	hard_unlock(rflags);
 }
 
 void cs_leave(struct critical_section* section) {
-	if (!is_mutlithread) {
-		return;
-	}
-	interrupt_disable();
+	uint64_t rflags = hard_lock();
 	section->is_occupied = false;
 	barrier();
-	interrupt_enable();
+	hard_unlock(rflags);
 }
 
 static struct slab_allocator thread_allocator;
 
 // There always must be at least one alive thread (idle for example)
 static struct {
-	struct critical_section cs;
-
 	schedule_callback_t callback;
 	struct thread* current;
 	struct thread* alive;
@@ -87,7 +87,6 @@ static void thread_fictive_init(struct thread* thread) {
 
 void scheduler_init(void) {
 	slab_init(&thread_allocator, sizeof(struct thread), _Alignof(struct thread));
-	cs_init(&scheduler.cs);
 	scheduler.alive = (struct thread*)slab_alloc(&thread_allocator);
 	scheduler.alive_tail = scheduler.alive;
 	scheduler.sleep = (struct thread*)slab_alloc(&thread_allocator);
@@ -108,8 +107,6 @@ void scheduler_init(void) {
 	main->prev = NULL;
 	main->next = NULL;
 	scheduler.current = main;
-
-	is_mutlithread = true;
 }
 
 struct thread* thread_current(void) {
@@ -145,13 +142,13 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 		*stack_top = value;
 	}; // this semicolon just to shut up editor warning
 
-	uint64_t rflags = read_rflags();
-	rflags &= ~0b110011010101ll; // Clear status & direction flags
-	rflags |=  1 << 9; // Set interruption flag
+	uint64_t new_rflags = read_rflags();
+	new_rflags &= ~0b110011010101ll; // Clear status & direction flags
+	new_rflags |=  1 << 9; // Set interruption flag
 
 	stack_push((uint64_t) thread); // param for thread_run
 	stack_push((uint64_t) thread_run_wrapper); // old RIP
-	stack_push(rflags);
+	stack_push(new_rflags);
 	stack_push(0); // RBP
 	stack_push(0); // RBX
 	stack_push(0); // R12
@@ -160,12 +157,13 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 	stack_push(0); // R15
 	thread->stack_pointer = stack_top;
 
-	cs_enter(&scheduler.cs);
+	// Scheduler must be hard-locked
+	uint64_t rflags = hard_lock();
 	thread_add(thread, scheduler.alive);
 	if (scheduler.alive == scheduler.alive_tail) {
 		scheduler.alive_tail = thread;
 	}
-	cs_leave(&scheduler.cs);
+	hard_unlock(rflags);
 
 	return thread;
 }
@@ -178,17 +176,22 @@ void thread_run(struct thread* thread) {
 	if (scheduler.callback != NULL) {
 		scheduler.callback();
 	}
+	// Thread is created with disabled interrupts
 	interrupt_enable();
 	log(LEVEL_V, "Starting thread %s.", thread->name);
+
 	data = func(data);
-	interrupt_disable();
 	barrier();
 
+	cs_enter(&thread->cs);
 	thread->is_over = true;
 	thread->data = data;
+	barrier();
+	cs_leave(&thread->cs);
 
+	uint64_t rflags = hard_lock();
 	schedule(NULL, THREAD_NEW_STATE_DEAD);
-
+	hard_unlock(rflags);
 	halt("Scheduler activated dead thread %s!", thread->name);
 }
 
@@ -202,11 +205,11 @@ void* thread_join(struct thread* thread) {
 
 		if (is_over) {
 			log(LEVEL_V, "Deleting dead thread %s.", thread->name);
-			cs_enter(&scheduler.cs);
+			uint64_t rflags = hard_lock();
 			thread_delete(thread);
 			buddy_free(pa(thread->stack));
 			slab_free(thread);
-			cs_leave(&scheduler.cs);
+			hard_unlock(rflags);
 			return data;
 		} else {
 			yield();
@@ -215,7 +218,7 @@ void* thread_join(struct thread* thread) {
 }
 
 void schedule(schedule_callback_t callback, enum thread_new_state state) {
-	// Interrupts should be off here!
+	// Interrupts should be off here (for example, via hard_lock())!
 	// For casual manual switching, use yield call!
 	struct thread* current = scheduler.current;
 	switch (state) {
@@ -257,7 +260,7 @@ void schedule(schedule_callback_t callback, enum thread_new_state state) {
 }
 
 void yield(void) {
-	interrupt_disable();
+	uint64_t rflags = hard_lock();
 	schedule(NULL, THREAD_NEW_STATE_ALIVE);
-	interrupt_enable();
+	hard_unlock(rflags);
 }

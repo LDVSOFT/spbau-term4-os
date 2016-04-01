@@ -54,8 +54,12 @@ void scheduler_init(void);
 void schedule(schedule_callback_t callback, enum thread_new_state state);
 void yield(void);
 
+static inline void write_rflags(uint64_t rflags) {
+	asm volatile ("push %0; popfq" : : "g"(rflags));
+}
+
 static inline uint64_t read_rflags(void) {
 	uint64_t rflags;
-	asm volatile ("pushfq; pop %0" : "=r"(rflags));
+	asm volatile ("pushfq; pop %0" : "=g"(rflags));
 	return rflags;
 }
