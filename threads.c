@@ -143,8 +143,7 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 	}; // this semicolon just to shut up editor warning
 
 	uint64_t new_rflags = read_rflags();
-	new_rflags &= ~0b110011010101ll; // Clear status & direction flags
-	new_rflags |=  1 << 9; // Set interruption flag
+	new_rflags &= ~0b110011010101ll; // Clear status & direction flags; iterrupts are off already
 
 	stack_push((uint64_t) thread); // param for thread_run
 	stack_push((uint64_t) thread_run_wrapper); // old RIP
