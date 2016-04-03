@@ -22,7 +22,7 @@ typedef void* (*thread_func_t)(void*);
 #define THREAD_STACK_SIZE (PAGE_SIZE << THREAD_STACK_ORDER)
 
 struct thread {
-	struct critical_section cs;
+	struct critical_section* cs;
 
 	const char *name;
 	thread_func_t func;

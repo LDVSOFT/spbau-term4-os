@@ -47,15 +47,16 @@ void cs_leave(struct critical_section* section) {
 }
 
 static struct slab_allocator thread_allocator;
+static struct slab_allocator thread_cs_allocator;
 
 // There always must be at least one alive thread (idle for example)
 static struct {
 	schedule_callback_t callback;
 	struct thread* current;
-	struct thread* alive;
+	struct thread alive;
 	struct thread* alive_tail;
-	struct thread* sleep;
-	struct thread* dead;
+	struct thread sleep;
+	struct thread dead;
 } scheduler;
 
 static void thread_delete(struct thread* thread) {
@@ -87,22 +88,19 @@ static void thread_fictive_init(struct thread* thread) {
 
 void scheduler_init(void) {
 	slab_init(&thread_allocator, sizeof(struct thread), _Alignof(struct thread));
-	scheduler.alive = (struct thread*)slab_alloc(&thread_allocator);
-	scheduler.alive_tail = scheduler.alive;
-	scheduler.sleep = (struct thread*)slab_alloc(&thread_allocator);
-	scheduler.dead = (struct thread*)slab_alloc(&thread_allocator);
-	if (scheduler.dead == NULL) {
-		halt("Not enough memory to setup scheduler.");
-	}
-	thread_fictive_init(scheduler.alive);
-	thread_fictive_init(scheduler.sleep);
-	thread_fictive_init(scheduler.dead);
+	slab_init(&thread_cs_allocator, sizeof(struct critical_section), _Alignof(struct critical_section));
+	scheduler.alive_tail = &scheduler.alive;
+	thread_fictive_init(&scheduler.alive);
+	thread_fictive_init(&scheduler.sleep);
+	thread_fictive_init(&scheduler.dead);
 
 	struct thread* main = (struct thread*) slab_alloc(&thread_allocator);
-	if (main == NULL) {
+	struct critical_section* main_cs = (struct critical_section*) slab_alloc(&thread_cs_allocator);
+	if (main == NULL || main_cs == NULL) {
 		halt("Cannot allocate struct for idle (main) thread!");
 	}
-	cs_init(&main->cs);
+	main->cs = main_cs;
+	cs_init(main->cs);
 	main->name = "main (idle)";
 	main->prev = NULL;
 	main->next = NULL;
@@ -124,8 +122,14 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 		buddy_free(stack_phys);
 		return NULL;
 	}
+	thread->cs = (struct critical_section*) slab_alloc(&thread_cs_allocator);
+	if (thread->cs == NULL) {
+		slab_free(thread);
+		buddy_free(stack_phys);
+		return NULL;
+	}
 
-	cs_init(&thread->cs);
+	cs_init(thread->cs);
 	thread->func = func;
 	thread->data = data;
 	thread->is_over = false;
@@ -158,8 +162,8 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 
 	// Scheduler must be hard-locked
 	uint64_t rflags = hard_lock();
-	thread_add(thread, scheduler.alive);
-	if (scheduler.alive == scheduler.alive_tail) {
+	thread_add(thread, &scheduler.alive);
+	if (&scheduler.alive == scheduler.alive_tail) {
 		scheduler.alive_tail = thread;
 	}
 	hard_unlock(rflags);
@@ -182,11 +186,11 @@ void thread_run(struct thread* thread) {
 	data = func(data);
 	barrier();
 
-	cs_enter(&thread->cs);
+	cs_enter(thread->cs);
 	thread->is_over = true;
 	thread->data = data;
 	barrier();
-	cs_leave(&thread->cs);
+	cs_leave(thread->cs);
 
 	uint64_t rflags = hard_lock();
 	schedule(NULL, THREAD_NEW_STATE_DEAD);
@@ -196,11 +200,11 @@ void thread_run(struct thread* thread) {
 
 void* thread_join(struct thread* thread) {
 	while (true) {
-		cs_enter(&thread->cs);
+		cs_enter(thread->cs);
 		barrier();
 		void* data = thread->data;
 		bool is_over = thread->is_over;
-		cs_leave(&thread->cs);
+		cs_leave(thread->cs);
 
 		if (is_over) {
 			log(LEVEL_V, "Deleting dead thread %s.", thread->name);
@@ -228,13 +232,13 @@ void schedule(schedule_callback_t callback, enum thread_new_state state) {
 			scheduler.alive_tail = current;
 			break;
 		case THREAD_NEW_STATE_SLEEP:
-			thread_add(current, scheduler.sleep);
+			thread_add(current, &scheduler.sleep);
 			break;
 		case THREAD_NEW_STATE_DEAD:
-			thread_add(current, scheduler.dead);
+			thread_add(current, &scheduler.dead);
 	}
 	// Get new task from beginning of alive threads...
-	struct thread* target = scheduler.alive->next;
+	struct thread* target = scheduler.alive.next;
 	if (target == NULL) {
 		halt("There is no alive threads!");
 	}
