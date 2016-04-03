@@ -293,13 +293,14 @@ void thread_run(struct thread* thread) {
 
 	data = func((void*) data);
 
+	uint64_t rflags = hard_lock();
+
 	cs_enter(thread->cs);
 	thread->is_over = true;
 	thread->data = data;
 	cv_notify(thread->is_dead);
 	cs_leave(thread->cs);
 
-	uint64_t rflags = hard_lock();
 	schedule(NULL, THREAD_NEW_STATE_DEAD);
 	hard_unlock(rflags);
 	halt("Scheduler activated dead thread %s!", thread->name);
