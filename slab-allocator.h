@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory.h"
+#include "threads.h"
 #include <stdint.h>
 
 struct slab;
@@ -12,24 +13,27 @@ struct slab_allocator;
 struct slab_node {
 	struct slab_node* next;
 	void* data;
-};
+} __attribute__((packed));
 
 struct slab {
 	struct slab* next;
 	struct slab_node* head;
 	phys_t page;
-};
+} __attribute__((packed));
 
 struct slab_allocator {
+	struct critical_section cs;
 	struct slab* head;
 	uint16_t obj_size;
 	uint16_t obj_align;
 };
 
-void slab_allocators_init();
+void slab_allocators_init(void);
 
 void slab_init(struct slab_allocator* allocator, uint16_t size, uint16_t align);
 void slab_finit(struct slab_allocator* allocator);
 
 void* slab_alloc(struct slab_allocator* allocator);
 void slab_free(void* ptr);
+
+#define slab_init_for(p, type) slab_init(p, sizeof(type), _Alignof(type))

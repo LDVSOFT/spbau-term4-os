@@ -2,7 +2,7 @@
 #include "kernel_config.h"
 #include "memory.h"
 
-void serial_init() {
+void serial_init(void) {
 	out8(PORT_SERIAL_BASE + 3, SERIAL_FLAG_FRAME | SERIAL_FLAG_DLAB);
 	out8(PORT_SERIAL_BASE + 0, get_bits(SERIAL_DIVISOR, 0, 8));
 	out8(PORT_SERIAL_BASE + 1, get_bits(SERIAL_DIVISOR, 8, 8));

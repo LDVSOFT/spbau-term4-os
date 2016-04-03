@@ -21,7 +21,7 @@ static void paging_build_iterator_init(struct paging_build_iterator* self) {
 	self->max_memory = 0;
 }
 
-static phys_t paging_new_page() {
+static phys_t paging_new_page(void) {
 	phys_t res = buddy_alloc(0);
 	pte_t* res_p = (pte_t*)va(res);
 	for (int i = 0; i != PTE_COUNT; ++i) {
@@ -59,7 +59,7 @@ static void paging_build_region(virt_t start, virt_t length, phys_t base, pte_t 
 	}
 }
 
-void paging_build() {
+void paging_build(void) {
 	struct paging_build_iterator iterator;
 	paging_build_iterator_init(&iterator);
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);

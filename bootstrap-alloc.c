@@ -13,7 +13,7 @@ struct mmap_entry bootstrap_mmap[BOOTSTRAP_MMAP_MAX_LENGTH];
 extern char text_phys_begin[];
 extern char bss_phys_end[];
 
-static int __bootstrap_init_get() {
+static int __bootstrap_init_get(void) {
 	if (bootstrap_mmap_size == BOOTSTRAP_MMAP_MAX_LENGTH) {
 		halt("Bootstrap allocator: mmap buffer is depleted.");
 	}
@@ -57,7 +57,7 @@ static void __bootstrap_init_mmap(struct mmap_iterator self, struct mmap_entry* 
 
 static struct mmap_iterator bootstrap_init_iterator = {(mmap_iterator_iterate_t)__bootstrap_init_mmap};
 
-void bootstrap_init_mmap() {
+void bootstrap_init_mmap(void) {
 	log(LEVEL_INFO, "Kernel is [%p %p).", (phys_t)text_phys_begin, (phys_t)bss_phys_end);
 	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
 	if ((info->flags & (1 << MBOOT_INFO_MMAP)) == 0) {

@@ -5,7 +5,7 @@
 #define INTERRUPT_PIC_MASTER 0x20
 #define INTERRUPT_PIC_SLAVE  0x28
 
-#define INTERRUPT_PIT (INTERRUPT_PIC_MASTER + 0)
+#define INTERRUPT_PIT ((uint8_t)INTERRUPT_PIC_MASTER + 0)
 
 #ifndef __ASM_FILE__
 
@@ -26,24 +26,33 @@ struct interrupt {
 	uint32_t reserved;
 } __attribute__((packed));
 
+struct interrupt_info {
+	uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+	uint64_t rbp, rsi, rdi, rdx, rcx, rbx, rax;
+	uint64_t rsp, id, error, rip, cs, rflags;
+} __attribute__((packed));
+
 typedef struct interrupt idt_t[INTERRUPT_COUNT];
 
+typedef void (*interrupt_handler_wrapper_t)(void);
+typedef void (*interrupt_handler_t)(struct interrupt_info* info);
+
+void interrupt_init(void);
+void interrupt_set(uint8_t id, interrupt_handler_t handler);
+void interrupt_handler_halt(struct interrupt_info* info);
+
+extern interrupt_handler_wrapper_t interrupt_handler_wrappers[INTERRUPT_COUNT];
+
 static inline void interrupt_set_idt(const struct idt_ptr *idt_ptr)
-{ __asm__ volatile ("lidt (%0)" : : "a"(idt_ptr)); }
+{ asm volatile ("lidt (%0)" : : "a"(idt_ptr)); }
 
-static inline void interrupt_enable()
-{ __asm__ volatile ("sti"); }
+static inline void interrupt_enable(void)
+{ asm volatile ("sti"); }
 
-static inline void interrupt_disable()
-{ __asm__ volatile ("cli"); }
+static inline void interrupt_disable(void)
+{ asm volatile ("cli"); }
 
-static inline void hlt()
-{ __asm__ volatile ("hlt"); }
-
-// Init IDT pointer
-void interrupt_init_ptr(struct idt_ptr *idt_ptr, idt_t table);
-
-// Sets interruption handler for interrupt #id in given IDT
-void interrupt_set(const struct idt_ptr *idt_ptr, uint8_t id, uint64_t handler);
+static inline void hlt(void)
+{ asm volatile ("hlt"); }
 
 #endif /*__ASM_FILE__*/

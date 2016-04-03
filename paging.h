@@ -65,23 +65,23 @@ static inline virt_t linear(virt_t addr)
 { return addr & 0x0000ffffffffffffllu; }
 
 static inline void store_pml4(phys_t pml4)
-{ __asm__ volatile ("movq %0, %%cr3" : : "a"(pml4) : "memory"); }
+{ asm volatile ("movq %0, %%cr3" : : "a"(pml4) : "memory"); }
 
 static inline phys_t load_pml4(void)
 {
 	phys_t pml4;
 
-	__asm__ volatile ("movq %%cr3, %0" : "=a"(pml4));
+	asm volatile ("movq %%cr3, %0" : "=a"(pml4));
 	return pml4;
 }
 
 static inline void flush_tlb_addr(virt_t addr)
-{ __asm__ volatile ("invlpg (%0)" : : "r"(addr) : "memory"); }
+{ asm volatile ("invlpg (%0)" : : "r"(addr) : "memory"); }
 
 static inline void flush_tlb(void)
 { store_pml4(load_pml4()); }
 
-void paging_build();
+void paging_build(void);
 void print_paging(pte_t pml4);
 
 #endif /*__PAGING_H__*/

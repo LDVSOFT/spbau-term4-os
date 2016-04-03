@@ -61,6 +61,7 @@ void halt_tagged(const char* tag, const char* format, ...) {
 	vlog_tagged(LEVEL_FAULT, tag, format, args);
 	va_end(args);
 	interrupt_disable();
+	printf("System halted.\n");
 	while (true) {
 		hlt();
 	}

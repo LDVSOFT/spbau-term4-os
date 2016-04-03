@@ -124,12 +124,13 @@ static void slab_big_free(struct slab* slab, void* ptr) {
 
 // Allocator
 
-void slab_allocators_init() {
+void slab_allocators_init(void) {
 	slab_init(&big_slab_struct_allocator, sizeof(struct slab)     , 1);
 	slab_init(&big_slab_node_allocator  , sizeof(struct slab_node), 1);
 }
 
 void slab_init(struct slab_allocator* slab_allocator, uint16_t size, uint16_t align) {
+	cs_init(&slab_allocator->cs);
 	slab_allocator->obj_size = size;
 	slab_allocator->obj_align = align;
 	if (size <= SLAB_SMALL) {
@@ -149,9 +150,10 @@ void slab_finit(struct slab_allocator* slab_allocator) {
 		}
 		slab = next;
 	}
+	cs_finit(&slab_allocator->cs);
 }
 
-void* slab_alloc(struct slab_allocator* slab_allocator) {
+static void* __slab_alloc(struct slab_allocator* slab_allocator) {
 	struct slab* slab;
 	for (slab = slab_allocator->head; slab != NULL; slab = slab->next) {
 		void* ptr;
@@ -184,12 +186,20 @@ void* slab_alloc(struct slab_allocator* slab_allocator) {
 	}
 }
 
+void* slab_alloc(struct slab_allocator* slab_allocator) {
+	cs_enter(&slab_allocator->cs);
+	void* res = __slab_alloc(slab_allocator);
+	cs_leave(&slab_allocator->cs);
+	return res;
+}
+
 void slab_free(void* ptr) {
 	if (ptr == NULL) {
 		return;
 	}
 	phys_t ptr_phys = pa(ptr);
 	struct slab_allocator* slab_allocator = page_descr_for(ptr_phys)->slab_allocator;
+	cs_enter(&slab_allocator->cs);
 	for (struct slab* slab = slab_allocator->head; slab != NULL; slab = slab->next) {
 		if (slab->page <= ptr_phys && ptr_phys < slab->page + PAGE_SIZE) {
 			if (slab_allocator->obj_size <= SLAB_SMALL) {
@@ -200,4 +210,5 @@ void slab_free(void* ptr) {
 			break;
 		}
 	}
+	cs_leave(&slab_allocator->cs);
 }

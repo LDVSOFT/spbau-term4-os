@@ -9,25 +9,26 @@ CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding \
 	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option -Wno-unused-parameter -Wno-unused-function
 LFLAGS := -nostdlib -z max-page-size=0x1000
 
-ASM := bootstrap.S videomem.S interrupt-wrappers.S
+ASM := bootstrap.S videomem.S interrupt-wrappers.S threads-wrappers.S
 AOBJ:= $(ASM:.S=.o)
 ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
-	bootstrap-alloc.c paging.c log.c slab-allocator.c
+	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c \
+	test.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
 all: kernel
 
-kernel: $(OBJ) kernel.ld
-	$(LD) $(LFLAGS) $(FLAGS) -T kernel.ld -o $@ $(OBJ)
+kernel: $(OBJ) kernel.ld Makefile
+	$(LD) $(LFLAGS) $(LINK_FLAGS) -T kernel.ld -o $@ $(OBJ)
 
-%.o: %.S
-	$(CC) $(FLAGS) -D__ASM_FILE__ -g -MMD -c $< -o $@
+%.o: %.S Makefile
+	$(CC) $(COMPILE_FLAGS) -D__ASM_FILE__ -g -MMD -c $< -o $@
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(FLAGS) -MMD -c $< -o $@
+%.o: %.c Makefile
+	$(CC) $(CFLAGS) $(COMPILE_FLAGS) -MMD -c $< -o $@
 
 -include $(DEP)
 
@@ -39,10 +40,10 @@ clean-full:
 	rm -f kernel *.o *.d
 
 run: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel $(FLAGS)
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(RUN_FLAGS)
 
 run-log: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel $(FLAGS) | tee log.txt | grep -vE '^!'
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=1 log_clr=0' $(RUN_FLAGS) | tee log.txt | grep -vE '^!'
 
 run-debug: kernel
-	$(QEMU) $(RUNFLAGS) -kernel kernel -s $(FLAGS)
+	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=10 log_clr=1' -s $(RUN_FLAGS)
