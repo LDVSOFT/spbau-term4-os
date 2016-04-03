@@ -45,26 +45,27 @@
 
 ## Task comletion
 
-|**Task 1**            |Status|
-|----------------------|------|
-|**Interruptions**     | 4/3/5|
-|Serial port           | Yes  |
-|PIC                   | Yes  |
-|PIT & IDT             | Yes  |
-|*printf*              | Yes  |
-|*backtrace*           | Done |
-|**Memory**            | 3/3/5|
-|MMAP                  | Yes  |
-|Buddy                 | Yes  |
-|SLAB                  | Yes  |
-|*malloc*              | No   |
-|*kmap*                | No   |
-|**Threads**           | -/3/5|
-|Critical section      | Yes? |
-|Scheduler             | Yes? |
-|Threads               | Yes? |
-|*Mutex*               | Plan |
-|*Condition var*       | Plan |
-|**Assignment 4**      | -/?/?|
-|**Assignment 5**      | -/?/?|
+|**Tasks**             |Status |
+|----------------------|-------|
+|**Interruptions**     | 4/3/5 |
+|Serial port           | Yes   |
+|PIC                   | Yes   |
+|PIT & IDT             | Yes   |
+|*printf*              | Yes   |
+|*backtrace*           | Done  |
+|**Memory**            | 3/3/5 |
+|MMAP                  | Yes   |
+|Buddy                 | Yes   |
+|SLAB                  | Yes   |
+|*malloc*              | No    |
+|*kmap*                | No    |
+|**Threads**           | 5/3/5 |
+|Critical section      | Yes   |
+|Scheduler             | Yes   |
+|Threads               | Yes   |
+|*Mutex*               | Yes   |
+|*Condition var*       | Yes   |
+|**Assignment 4**      | -/?/? |
+|**Assignment 5**      | -/?/? |
+|***TOTAL***           |12/9/15|
 
