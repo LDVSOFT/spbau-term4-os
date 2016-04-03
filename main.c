@@ -53,11 +53,13 @@ void main(void) {
 
 	log(LEVEL_INFO, "Preparing scheduler...");
 	scheduler_init();
-	interrupt_enable();
 	log(LEVEL_INFO, "Scheduler is ready, multithreading is on.");
+	interrupt_enable();
 
 	#ifdef CONFIG_TESTS
+	printf("Starting tests!\n");
 	test_threads();
+	test_condition_variable();
 	#endif
 
 	while (true) {

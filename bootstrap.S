@@ -1,5 +1,6 @@
 #include "kernel_config.h"
 #include "memory.h"
+#include "threads.h"
 
 #define MB_HEADER_MAGIC 0x1BADB002
 #define MB_HEADER_FLAGS ((1 << 16) | (1 << 1))
@@ -252,6 +253,8 @@ start64:
 
 	.bss
 	.global init_stack_top
+	.global init_stack
 	.align 0x1000
-	.space 0x2000
+init_stack:
+	.space THREAD_STACK_SIZE
 init_stack_top:

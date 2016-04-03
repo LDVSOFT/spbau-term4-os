@@ -2,6 +2,8 @@
 #include "threads.h"
 #include "log.h"
 
+#include <stddef.h>
+
 struct thread_test_data {
 	int level;
 	uint64_t id;
@@ -42,4 +44,71 @@ void test_threads(void) {
 	thread_test(&root);
 
 	log(LEVEL_INFO, "Threads test completed.");
+}
+
+struct test_cv_data {
+	struct critical_section cs;
+	struct condition_variable cv;
+	bool is_set;
+};
+
+static void* test_cv_waiter(void* p) {
+	struct test_cv_data* data = (struct test_cv_data*)p;
+	cs_enter(&data->cs);
+	if (data->is_set) {
+		halt("Too slow...");
+	}
+	while (!data->is_set) {
+		cv_wait(&data->cv);
+		log(LEVEL_V, "I woke up!");
+		barrier();
+	}
+	log(LEVEL_V, "Finally!");
+	cs_leave(&data->cs);
+	return NULL;
+}
+
+static void* test_cv_setter(void* p) {
+	struct test_cv_data* data = (struct test_cv_data*)p;
+	cs_enter(&data->cs);
+	int a = 0;
+	for (int i = 0; i != 2000; ++i) {
+		for (int j = 0; j != 2000; ++j) {
+			for (int k = 0; k != 2000; ++k) {
+				a += i * 2 + j + k * 34;
+			}
+		}
+		if (i % 100 == 0) {
+			yield();
+		}
+	}
+	log(LEVEL_V, "Setting %d.", a);
+	data->is_set = a != 0;
+	cv_notify(&data->cv);
+	log(LEVEL_V, "Notified?");
+	cs_leave(&data->cs);
+	return NULL;
+}
+
+void test_condition_variable() {
+	log(LEVEL_INFO, "Starting condition variable test...");
+	struct test_cv_data data;
+	cs_init(&data.cs);
+	cv_init(&data.cv, &data.cs);
+	data.is_set = false;
+	barrier();
+
+	log(LEVEL_V, "Starting waiter...");
+	struct thread* waiter = thread_create(test_cv_waiter, &data, "waiter");
+	log(LEVEL_V, "Switching...");
+	yield();
+	log(LEVEL_V, "Starting setter...");
+	struct thread* setter = thread_create(test_cv_setter, &data, "setter");
+	log(LEVEL_V, "Waiting...");
+	thread_join(waiter);
+	thread_join(setter);
+
+	cv_finit(&data.cv);
+	cs_finit(&data.cs);
+	log(LEVEL_INFO, "Condition variable test completed.");
 }

@@ -35,3 +35,5 @@ void slab_finit(struct slab_allocator* allocator);
 
 void* slab_alloc(struct slab_allocator* allocator);
 void slab_free(void* ptr);
+
+#define slab_init_for(p, type) slab_init(p, sizeof(type), _Alignof(type))

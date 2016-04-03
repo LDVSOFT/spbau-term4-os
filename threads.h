@@ -1,5 +1,10 @@
 #pragma once
 
+#define THREAD_STACK_ORDER 1
+#define THREAD_STACK_SIZE 0x2000
+
+#ifndef __ASM_FILE__
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -7,40 +12,57 @@ static inline void barrier() {
 	asm volatile ("" : : : "memory");
 }
 
-struct critical_section {
-	volatile bool is_occupied;
-};
-
-void cs_init (struct critical_section* section);
-void cs_finit(struct critical_section* section);
-void cs_enter(struct critical_section* section);
-void cs_leave(struct critical_section* section);
-
 typedef void* (*thread_func_t)(void*);
 
-#define THREAD_STACK_ORDER 1
-#define THREAD_STACK_SIZE (PAGE_SIZE << THREAD_STACK_ORDER)
+struct critical_section;
+struct condition_variable;
 
 struct thread {
-	struct critical_section* cs;
+	volatile struct critical_section* cs;
+	volatile struct condition_variable* is_dead;
 
 	const char *name;
 	thread_func_t func;
-	void* data;
-	bool is_over;
+	volatile void* data;
+	volatile bool is_over;
 
 	void* stack;
 	void* stack_pointer;
-	struct thread* prev;
-	struct thread* next;
+	// Thread can be contained it 2 lists. Sheduler's one:
+	volatile struct thread* prev;
+	volatile struct thread* next;
+	// And another one (for condition variable, etc)
+	volatile struct thread* alt_prev;
+	volatile struct thread* alt_next;
 };
 
+struct condition_variable {
+	volatile struct critical_section* section;
+	struct thread head;
+};
+
+struct critical_section {
+	volatile bool is_occupied;
+	struct condition_variable is_locked;
+};
+
+void cv_init(volatile struct condition_variable* varibale, volatile struct critical_section* section);
+void cv_finit(volatile struct condition_variable* variable);
+void cv_wait(volatile struct condition_variable* variable);
+void cv_notify(volatile struct condition_variable* variable);
+void cv_notify_all(volatile struct condition_variable* variable);
+
+void cs_init (volatile struct critical_section* section);
+void cs_finit(volatile struct critical_section* section);
+void cs_enter(volatile struct critical_section* section);
+void cs_leave(volatile struct critical_section* section);
+
 struct thread* thread_create(thread_func_t func, void* data, const char* name);
-struct thread* thread_current(void);
+volatile struct thread* thread_current(void);
 void* thread_join(struct thread* thread);
 
 // Assembly:
-void thread_switch(void** old_stack, void* new_stack);
+void thread_switch(void* volatile* old_stack, volatile void* new_stack);
 void thread_run_wrapper(void);
 
 enum thread_new_state {
@@ -63,3 +85,5 @@ static inline uint64_t read_rflags(void) {
 	asm volatile ("pushfq; pop %0" : "=g"(rflags));
 	return rflags;
 }
+
+#endif /*__ASM_FILE__*/
