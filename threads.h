@@ -5,6 +5,7 @@
 
 #ifndef __ASM_FILE__
 
+#include "list.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -15,11 +16,20 @@ static inline void barrier() {
 typedef void* (*thread_func_t)(void*);
 
 struct critical_section;
-struct condition_variable;
+
+struct condition_variable {
+	struct critical_section* section;
+	struct list_node threads_head;
+};
+
+struct critical_section {
+	bool is_occupied;
+	struct condition_variable is_locked;
+};
 
 struct thread {
-	struct critical_section* cs;
-	struct condition_variable* is_dead;
+	struct critical_section cs;
+	struct condition_variable is_dead;
 
 	const char *name;
 	thread_func_t func;
@@ -29,21 +39,9 @@ struct thread {
 	void* stack;
 	void* stack_pointer;
 	// Thread can be contained it 2 lists. Sheduler's one:
-	struct thread* prev;
-	struct thread* next;
+	struct list_node scheduler_link;
 	// And another one (for condition variable, etc)
-	struct thread* alt_prev;
-	struct thread* alt_next;
-};
-
-struct condition_variable {
-	struct critical_section* section;
-	struct thread head;
-};
-
-struct critical_section {
-	bool is_occupied;
-	struct condition_variable is_locked;
+	struct list_node store_link;
 };
 
 void cv_init(struct condition_variable* varibale, struct critical_section* section);

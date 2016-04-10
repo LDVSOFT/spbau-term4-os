@@ -2,6 +2,7 @@
 
 #include "memory.h"
 #include "threads.h"
+#include "list.h"
 #include <stdint.h>
 
 struct slab;
@@ -11,19 +12,19 @@ struct slab_allocator;
 #define SLAB_SMALL (PAGE_SIZE / 8)
 
 struct slab_node {
-	struct slab_node* next;
+	struct list_node link;
 	void* data;
 } __attribute__((packed));
 
 struct slab {
-	struct slab* next;
-	struct slab_node* head;
+	struct list_node link;
+	struct list_node nodes_head;
 	phys_t page;
 } __attribute__((packed));
 
 struct slab_allocator {
 	struct critical_section cs;
-	struct slab* head;
+	struct list_node slabs_head;
 	uint16_t obj_size;
 	uint16_t obj_align;
 };

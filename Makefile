@@ -15,7 +15,7 @@ ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
 	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c \
-	test.c
+	test.c list.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
