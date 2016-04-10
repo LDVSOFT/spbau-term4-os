@@ -4,8 +4,8 @@ QEMU = qemu-system-x86_64
 
 RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm
 # -pedantic is off because I want some GCC extensions
-CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding \
-	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -O2 \
+CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding -fno-omit-frame-pointer \
+	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -Og \
 	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option -Wno-unused-parameter -Wno-unused-function
 LFLAGS := -nostdlib -z max-page-size=0x1000
 

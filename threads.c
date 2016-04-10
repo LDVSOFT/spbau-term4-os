@@ -135,7 +135,7 @@ void mutex_unlock(struct mutex* mutex) {
 
 static struct slab_allocator thread_allocator;
 
-extern void* init_stack;
+extern char init_stack[];
 
 void scheduler_init(void) {
 	slab_init_for(&thread_allocator, struct thread);

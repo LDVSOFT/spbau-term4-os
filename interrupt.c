@@ -79,6 +79,7 @@ const char* interrupt_message(int id) {
 static void backtrace(uint64_t rbp, uintptr_t stack_begin, uintptr_t stack_end)
 {
 	int depth = 0;
+	log(LEVEL_ERROR, "Backtrace: rbp=%p, stack=[%p..%p)", rbp, stack_begin, stack_end);
 	while (rbp >= stack_begin && rbp < stack_end - 2 * sizeof(uint64_t)) {
 		uint64_t* stack_ptr = (uint64_t*) rbp;
 		log(LEVEL_ERROR, "%2d: %p", depth++, (void *)stack_ptr[1]);
@@ -88,7 +89,7 @@ static void backtrace(uint64_t rbp, uintptr_t stack_begin, uintptr_t stack_end)
 
 void interrupt_handler_halt(struct interrupt_info* info) {
 	log(LEVEL_ERROR, "Interruption %u: %s. Error code %u.", info->id, interrupt_message(info->id), info->error);
-	#define log_r(x) log(LEVEL_ERROR, "%s=%p", #x, info->x)
+	#define log_r(x) log(LEVEL_ERROR, "%3s=%p", #x, info->x)
 	log_r(rip); log_r(cs ); log_r(rflags);
 	log_r(rax); log_r(rbx); log_r(rcx); log_r(rdx);
 	log_r(rdi); log_r(rsi); log_r(rbp); log_r(rsp);
