@@ -50,6 +50,9 @@ void cv_wait(struct condition_variable* variable);
 void cv_notify(struct condition_variable* variable);
 void cv_notify_all(struct condition_variable* variable);
 
+uint64_t hard_lock();
+void hard_unlock(uint64_t rflags);
+
 void mutex_init (struct mutex* mutex);
 void mutex_finit(struct mutex* mutex);
 void mutex_lock(struct mutex* mutex);

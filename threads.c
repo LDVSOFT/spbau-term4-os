@@ -28,14 +28,14 @@ static void thread_fictive_init(struct thread* thread) {
 
 // Locks
 
-static uint64_t hard_lock() {
+uint64_t hard_lock() {
 	uint64_t rflags = read_rflags();
 	interrupt_disable();
 	barrier();
 	return rflags;
 }
 
-static void hard_unlock(uint64_t rflags) {
+void hard_unlock(uint64_t rflags) {
 	barrier();
 	write_rflags(rflags);
 }
