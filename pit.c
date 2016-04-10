@@ -4,20 +4,16 @@
 #include "memory.h"
 #include "threads.h"
 
-static void pit_eoi(void) {
-	pic_eoi(false);
-}
-
 void pit_handler(struct interrupt_info* info) {
+	pic_eoi(false);
+	
 	static int counter = 0;
 	static int number = 0;
 	++counter;
 	if (counter >= PIT_TICKS) {
 		++number;
 		counter = 0;
-		schedule(pit_eoi, THREAD_NEW_STATE_ALIVE);
-	} else {
-		pic_eoi(false);
+		schedule(THREAD_NEW_STATE_ALIVE);
 	}
 }
 

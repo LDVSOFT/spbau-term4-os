@@ -71,9 +71,8 @@ enum thread_new_state {
 	THREAD_NEW_STATE_DEAD
 };
 
-typedef void(*schedule_callback_t)(void);
 void scheduler_init(void);
-void schedule(schedule_callback_t callback, enum thread_new_state state);
+void schedule(enum thread_new_state state);
 void yield(void);
 
 static inline void write_rflags(uint64_t rflags) {

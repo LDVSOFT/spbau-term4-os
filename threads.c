@@ -12,7 +12,6 @@
 
 // There always must be at least one alive thread (idle for example)
 static struct {
-	schedule_callback_t callback;
 	struct thread idle;
 	volatile struct thread* current;
 	struct thread alive;
@@ -104,9 +103,9 @@ void cv_wait(volatile struct condition_variable* variable) {
 	}
 	if (can_sleep) {
 		// Alive -> sleep
-		schedule(NULL, THREAD_NEW_STATE_SLEEP);
+		schedule(THREAD_NEW_STATE_SLEEP);
 	} else {
-		schedule(NULL, THREAD_NEW_STATE_ALIVE);
+		schedule(THREAD_NEW_STATE_ALIVE);
 	}
 	// ..and take back here.
 	if (should_release) {
@@ -283,10 +282,6 @@ void thread_run(struct thread* thread) {
 	thread_func_t func = thread->func;
 	volatile void* data = thread->data;
 
-	// We should emulate exiting schedule() call
-	if (scheduler.callback != NULL) {
-		scheduler.callback();
-	}
 	// Thread is created with disabled interrupts
 	interrupt_enable();
 	log(LEVEL_VV, "Starting thread %s.", thread->name);
@@ -301,7 +296,7 @@ void thread_run(struct thread* thread) {
 	cv_notify(thread->is_dead);
 	cs_leave(thread->cs);
 
-	schedule(NULL, THREAD_NEW_STATE_DEAD);
+	schedule(THREAD_NEW_STATE_DEAD);
 	hard_unlock(rflags);
 	halt("Scheduler activated dead thread %s!", thread->name);
 }
@@ -327,9 +322,8 @@ void* thread_join(struct thread* thread) {
 	}
 }
 
-void schedule(schedule_callback_t callback, enum thread_new_state state) {
-	// Interrupts should be off here (for example, via hard_lock())!
-	// For casual manual switching, use yield call!
+void schedule(enum thread_new_state state) {
+	uint64_t rflags = hard_lock();
 	volatile struct thread* current = scheduler.current;
 	switch (state) {
 		case THREAD_NEW_STATE_ALIVE:
@@ -351,7 +345,6 @@ void schedule(schedule_callback_t callback, enum thread_new_state state) {
 	}
 	thread_delete(target);
 
-	scheduler.callback = callback;
 	scheduler.current = target;
 
 	log(LEVEL_VV, "Initiate switching %s -> %s...", current->name, target->name);
@@ -361,14 +354,9 @@ void schedule(schedule_callback_t callback, enum thread_new_state state) {
 		thread_switch(&current->stack_pointer, target->stack_pointer);
 		log(LEVEL_VV, "Switched to %s.", scheduler.current->name);
 	}
-
-	if (scheduler.callback != NULL) {
-		scheduler.callback();
-	}
+	hard_unlock(rflags);
 }
 
 void yield(void) {
-	uint64_t rflags = hard_lock();
-	schedule(NULL, THREAD_NEW_STATE_ALIVE);
-	hard_unlock(rflags);
+	schedule(THREAD_NEW_STATE_ALIVE);
 }
