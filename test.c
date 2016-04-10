@@ -1,6 +1,7 @@
 #include "test.h"
 #include "threads.h"
 #include "log.h"
+#include "print.h"
 
 #include <stddef.h>
 
@@ -10,28 +11,35 @@ struct thread_test_data {
 };
 
 const int MAX_LEVEL = 10;
+const int BUFFER = 128;
 
 static void* thread_test(struct thread_test_data* data) {
-	log(LEVEL_V, "%d: Enter, data=%p.", data->id, data);
+	log(LEVEL_V, "Enter, data=%p.", data);
 	if (data->level < MAX_LEVEL) {
 		struct thread_test_data left_data;
 		left_data.level = data->level + 1;
 		left_data.id = data->id * 2;
-		struct thread* left = thread_create((thread_func_t)thread_test, &left_data, "test");
-		log(LEVEL_V, "%d: Created left = %p.", data->id, left);
+		char left_name[BUFFER];
+		snprintf(left_name, BUFFER, "test %d", left_data.id);
+		struct thread* left = thread_create((thread_func_t)thread_test, &left_data, left_name);
+		log(LEVEL_V, "Created left = %p.", left);
+
 		struct thread_test_data right_data;
 		right_data.level = data->level + 1;
 		right_data.id = data->id * 2 + 1;
-		struct thread* right = thread_create((thread_func_t)thread_test, &right_data, "test");
-		log(LEVEL_V, "%d: Created right = %p.", data->id, right);
+		char right_name[BUFFER];
+		snprintf(right_name, BUFFER, "test %d", right_data.id);
+		struct thread* right = thread_create((thread_func_t)thread_test, &right_data, right_name);
+		log(LEVEL_V, "Created right = %p.", right);
+
 		if ((uint64_t)thread_join(left) != left_data.id) {
-			halt("%d: Left return wrong id.");
+			halt("Left return wrong id.");
 		}
 		if ((uint64_t)thread_join(right) != right_data.id) {
-			halt("%d: Right return wrong id.");
+			halt("Right return wrong id.");
 		}
 	}
-	log(LEVEL_V, "%d: Exit", data->id);
+	log(LEVEL_V, "Exit");
 	return (void*)data->id;
 }
 
