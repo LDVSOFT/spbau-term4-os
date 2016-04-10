@@ -4,8 +4,8 @@ QEMU = qemu-system-x86_64
 
 RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm
 # -pedantic is off because I want some GCC extensions
-CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding \
-	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -O2 \
+CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding -fno-omit-frame-pointer \
+	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -Og \
 	-Wframe-larger-than=4096 -Wstack-usage=4096 -Wno-unknown-warning-option -Wno-unused-parameter -Wno-unused-function
 LFLAGS := -nostdlib -z max-page-size=0x1000
 
@@ -15,7 +15,7 @@ ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
 	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c \
-	test.c
+	test.c list.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
@@ -34,10 +34,10 @@ kernel: $(OBJ) kernel.ld Makefile
 
 .PHONY: clean clean-full run run-log run-debug
 clean:
-	rm -f kernel $(OBJ) $(DEP)
+	rm -f kernel $(OBJ) $(DEP) log.txt
 
 clean-full:
-	rm -f kernel *.o *.d
+	rm -f kernel *.o *.d log.txt
 
 run: kernel
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(RUN_FLAGS)

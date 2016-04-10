@@ -5,6 +5,7 @@
 
 #ifndef __ASM_FILE__
 
+#include "list.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -14,55 +15,55 @@ static inline void barrier() {
 
 typedef void* (*thread_func_t)(void*);
 
-struct critical_section;
-struct condition_variable;
+struct mutex;
+
+struct condition_variable {
+	struct mutex* mutex;
+	struct list_node threads_head;
+};
+
+struct mutex {
+	bool is_occupied;
+	struct condition_variable is_locked;
+};
 
 struct thread {
-	volatile struct critical_section* cs;
-	volatile struct condition_variable* is_dead;
+	struct mutex lock;
+	struct condition_variable is_dead;
 
 	const char *name;
 	thread_func_t func;
-	volatile void* data;
-	volatile bool is_over;
+	void* data;
+	bool is_over;
 
 	void* stack;
 	void* stack_pointer;
 	// Thread can be contained it 2 lists. Sheduler's one:
-	volatile struct thread* prev;
-	volatile struct thread* next;
+	struct list_node scheduler_link;
 	// And another one (for condition variable, etc)
-	volatile struct thread* alt_prev;
-	volatile struct thread* alt_next;
+	struct list_node store_link;
 };
 
-struct condition_variable {
-	volatile struct critical_section* section;
-	struct thread head;
-};
+void cv_init(struct condition_variable* varibale, struct mutex* mutex);
+void cv_finit(struct condition_variable* variable);
+void cv_wait(struct condition_variable* variable);
+void cv_notify(struct condition_variable* variable);
+void cv_notify_all(struct condition_variable* variable);
 
-struct critical_section {
-	volatile bool is_occupied;
-	struct condition_variable is_locked;
-};
+uint64_t hard_lock();
+void hard_unlock(uint64_t rflags);
 
-void cv_init(volatile struct condition_variable* varibale, volatile struct critical_section* section);
-void cv_finit(volatile struct condition_variable* variable);
-void cv_wait(volatile struct condition_variable* variable);
-void cv_notify(volatile struct condition_variable* variable);
-void cv_notify_all(volatile struct condition_variable* variable);
-
-void cs_init (volatile struct critical_section* section);
-void cs_finit(volatile struct critical_section* section);
-void cs_enter(volatile struct critical_section* section);
-void cs_leave(volatile struct critical_section* section);
+void mutex_init (struct mutex* mutex);
+void mutex_finit(struct mutex* mutex);
+void mutex_lock(struct mutex* mutex);
+void mutex_unlock(struct mutex* mutex);
 
 struct thread* thread_create(thread_func_t func, void* data, const char* name);
-volatile struct thread* thread_current(void);
+struct thread* thread_current(void);
 void* thread_join(struct thread* thread);
 
 // Assembly:
-void thread_switch(void* volatile* old_stack, volatile void* new_stack);
+void thread_switch(void** old_stack, void* new_stack);
 void thread_run_wrapper(void);
 
 enum thread_new_state {
@@ -71,9 +72,8 @@ enum thread_new_state {
 	THREAD_NEW_STATE_DEAD
 };
 
-typedef void(*schedule_callback_t)(void);
 void scheduler_init(void);
-void schedule(schedule_callback_t callback, enum thread_new_state state);
+void schedule(enum thread_new_state state);
 void yield(void);
 
 static inline void write_rflags(uint64_t rflags) {

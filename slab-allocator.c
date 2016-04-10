@@ -10,8 +10,8 @@ static struct slab* slab_small_new(struct slab_allocator* main, uint16_t size, u
 		return NULL;
 	}
 	struct slab* slab = (struct slab*)( (virt_t)va(page) + PAGE_SIZE - sizeof(struct slab) );
-	slab->next = NULL;
-	slab->head = NULL;
+	list_init(&slab->link);
+	list_init(&slab->nodes_head);
 	slab->page = page;
 
 	virt_t block_size = sizeof(struct slab_node) + size;
@@ -19,9 +19,8 @@ static struct slab* slab_small_new(struct slab_allocator* main, uint16_t size, u
 
 	for (virt_t pos = (virt_t)va(page); pos + shift <= (virt_t)slab; pos += shift) {
 		struct slab_node* node = (struct slab_node*) pos;
-		node->next = slab->head;
 		node->data = (void*)( pos + sizeof(struct slab_node) );
-		slab->head = node;
+		list_add(&node->link, &slab->nodes_head);
 	}
 	page_descr_for(page)->slab_allocator = main;
 	log(LEVEL_V, "New small slab created at page %p for size=%hu, align=%hu.", page, size, align);
@@ -35,20 +34,18 @@ static void slab_small_delete(struct slab* slab) {
 }
 
 static void* slab_small_alloc(struct slab* slab) {
-	struct slab_node* node = slab->head;
-	if (node == NULL) {
+	if (list_empty(&slab->nodes_head)) {
 		return NULL;
 	}
+	struct slab_node* node = LIST_ENTRY(list_first(&slab->nodes_head), struct slab_node, link);
 	void* ptr = node->data;
-	slab->head = node->next;
-	node->next = NULL;
+	list_delete(&node->link);
 	return ptr;
 }
 
 static void slab_small_free(struct slab* slab, void* ptr) {
 	struct slab_node* node = (struct slab_node*)( (virt_t)ptr - sizeof(struct slab_node) );
-	node->next = slab->head;
-	slab->head = node;
+	list_add(&node->link, &slab->nodes_head);
 }
 
 // Big
@@ -69,8 +66,8 @@ static struct slab* slab_big_new(struct slab_allocator* main, uint16_t size, uin
 		return NULL;
 	}
 
-	slab->next = NULL;
-	slab->head = NULL;
+	list_init(&slab->link);
+	list_init(&slab->nodes_head);
 	slab->page = page;
 
 	virt_t shift = ((size + align - 1) / align) * align;
@@ -80,9 +77,8 @@ static struct slab* slab_big_new(struct slab_allocator* main, uint16_t size, uin
 			slab_big_delete(slab);
 			return NULL;
 		}
-		node->next = slab->head;
 		node->data = (void*)pos;
-		slab->head = node;
+		list_add(&node->link, &slab->nodes_head);
 	}
 	page_descr_for(page)->slab_allocator = main;
 	log(LEVEL_V, "New big slab created at page %p for size=%hu, align=%hu.", page, size, align);
@@ -91,23 +87,22 @@ static struct slab* slab_big_new(struct slab_allocator* main, uint16_t size, uin
 
 static void slab_big_delete(struct slab* slab) {
 	page_descr_for(slab->page)->slab_allocator = NULL;
-	for (struct slab_node* node = slab->head; node != NULL; ) {
-		struct slab_node* next = node->next;
+	for (struct list_node* list_node = list_first(&slab->nodes_head); list_node != &slab->nodes_head; ) {
+		struct slab_node* node = LIST_ENTRY(list_node, struct slab_node, link);
+		list_node = list_node->next;
 		slab_free(node);
-		node = next;
 	}
 	log(LEVEL_V, "Big slab deleted from page %p.", slab->page);
 	buddy_free(slab->page);
 }
 
 static void* slab_big_alloc(struct slab* slab) {
-	struct slab_node* node = slab->head;
-	if (node == NULL) {
+	if (list_empty(&slab->nodes_head)) {
 		return NULL;
 	}
+	struct slab_node* node = LIST_ENTRY(&slab->nodes_head, struct slab_node, link);
 	void* ptr = node->data;
-	slab->head = node->next;
-	node->next = NULL;
+	list_delete(&node->link);
 	slab_free(node);
 	return ptr;
 }
@@ -118,8 +113,7 @@ static void slab_big_free(struct slab* slab, void* ptr) {
 		halt("No memory for new slab node to free memory!");
 	}
 	node->data = ptr;
-	node->next = slab->head;
-	slab->head = node;
+	list_add(&slab->nodes_head, &node->link);
 }
 
 // Allocator
@@ -130,32 +124,39 @@ void slab_allocators_init(void) {
 }
 
 void slab_init(struct slab_allocator* slab_allocator, uint16_t size, uint16_t align) {
-	cs_init(&slab_allocator->cs);
+	mutex_init(&slab_allocator->lock);
 	slab_allocator->obj_size = size;
 	slab_allocator->obj_align = align;
+	struct slab* slab;
 	if (size <= SLAB_SMALL) {
-		slab_allocator->head = slab_small_new(slab_allocator, size, align);
+		slab = slab_small_new(slab_allocator, size, align);
 	} else {
-		slab_allocator->head = slab_big_new(slab_allocator, size, align);
+		slab = slab_big_new(slab_allocator, size, align);
 	}
+	list_add(&slab_allocator->slabs_head, &slab->link);
 }
 
 void slab_finit(struct slab_allocator* slab_allocator) {
-	for (struct slab* slab = slab_allocator->head; slab != NULL; ) {
-		struct slab* next = slab->next;
+	for (struct list_node* list_node = list_first(&slab_allocator->slabs_head); list_node != &slab_allocator->slabs_head; ) {
+		struct slab* slab = LIST_ENTRY(list_node, struct slab, link);
+		list_node = list_node->next;
 		if (slab_allocator->obj_size <= SLAB_SMALL) {
 			slab_small_delete(slab);
 		} else {
 			slab_big_delete(slab);
 		}
-		slab = next;
 	}
-	cs_finit(&slab_allocator->cs);
+	mutex_finit(&slab_allocator->lock);
 }
 
 static void* __slab_alloc(struct slab_allocator* slab_allocator) {
 	struct slab* slab;
-	for (slab = slab_allocator->head; slab != NULL; slab = slab->next) {
+	for (
+			struct list_node* list_node = list_first(&slab_allocator->slabs_head);
+			list_node != &slab_allocator->slabs_head;
+			list_node = list_node->next
+	) {
+		slab = LIST_ENTRY(list_node, struct slab, link);
 		void* ptr;
 		if (slab_allocator->obj_size <= SLAB_SMALL) {
 			ptr = slab_small_alloc(slab);
@@ -172,24 +173,22 @@ static void* __slab_alloc(struct slab_allocator* slab_allocator) {
 		if (slab == NULL) {
 			return NULL;
 		}
-		slab->next = slab_allocator->head;
-		slab_allocator->head = slab;
+		list_add(&slab->link, &slab_allocator->slabs_head);
 		return slab_small_alloc(slab);
 	} else {
 		slab = slab_big_new(slab_allocator, slab_allocator->obj_size, slab_allocator->obj_align);
 		if (slab == NULL) {
 			return NULL;
 		}
-		slab->next = slab_allocator->head;
-		slab_allocator->head = slab;
+		list_add(&slab->link, &slab_allocator->slabs_head);
 		return slab_big_alloc(slab);
 	}
 }
 
 void* slab_alloc(struct slab_allocator* slab_allocator) {
-	cs_enter(&slab_allocator->cs);
+	mutex_lock(&slab_allocator->lock);
 	void* res = __slab_alloc(slab_allocator);
-	cs_leave(&slab_allocator->cs);
+	mutex_unlock(&slab_allocator->lock);
 	return res;
 }
 
@@ -199,8 +198,13 @@ void slab_free(void* ptr) {
 	}
 	phys_t ptr_phys = pa(ptr);
 	struct slab_allocator* slab_allocator = page_descr_for(ptr_phys)->slab_allocator;
-	cs_enter(&slab_allocator->cs);
-	for (struct slab* slab = slab_allocator->head; slab != NULL; slab = slab->next) {
+	mutex_lock(&slab_allocator->lock);
+	for (
+			struct list_node* list_node = list_first(&slab_allocator->slabs_head);
+			list_node != &slab_allocator->slabs_head;
+			list_node = list_node->next
+	) {
+		struct slab* slab = LIST_ENTRY(list_node, struct slab, link);
 		if (slab->page <= ptr_phys && ptr_phys < slab->page + PAGE_SIZE) {
 			if (slab_allocator->obj_size <= SLAB_SMALL) {
 				slab_small_free(slab, ptr);
@@ -210,5 +214,5 @@ void slab_free(void* ptr) {
 			break;
 		}
 	}
-	cs_leave(&slab_allocator->cs);
+	mutex_unlock(&slab_allocator->lock);
 }

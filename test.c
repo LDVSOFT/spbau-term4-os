@@ -1,6 +1,7 @@
 #include "test.h"
 #include "threads.h"
 #include "log.h"
+#include "print.h"
 
 #include <stddef.h>
 
@@ -10,28 +11,35 @@ struct thread_test_data {
 };
 
 const int MAX_LEVEL = 10;
+const int BUFFER = 128;
 
 static void* thread_test(struct thread_test_data* data) {
-	log(LEVEL_V, "%d: Enter, data=%p.", data->id, data);
+	log(LEVEL_V, "Enter, data=%p.", data);
 	if (data->level < MAX_LEVEL) {
 		struct thread_test_data left_data;
 		left_data.level = data->level + 1;
 		left_data.id = data->id * 2;
-		struct thread* left = thread_create((thread_func_t)thread_test, &left_data, "test");
-		log(LEVEL_V, "%d: Created left = %p.", data->id, left);
+		char left_name[BUFFER];
+		snprintf(left_name, BUFFER, "test %d", left_data.id);
+		struct thread* left = thread_create((thread_func_t)thread_test, &left_data, left_name);
+		log(LEVEL_V, "Created left = %p.", left);
+
 		struct thread_test_data right_data;
 		right_data.level = data->level + 1;
 		right_data.id = data->id * 2 + 1;
-		struct thread* right = thread_create((thread_func_t)thread_test, &right_data, "test");
-		log(LEVEL_V, "%d: Created right = %p.", data->id, right);
+		char right_name[BUFFER];
+		snprintf(right_name, BUFFER, "test %d", right_data.id);
+		struct thread* right = thread_create((thread_func_t)thread_test, &right_data, right_name);
+		log(LEVEL_V, "Created right = %p.", right);
+
 		if ((uint64_t)thread_join(left) != left_data.id) {
-			halt("%d: Left return wrong id.");
+			halt("Left return wrong id.");
 		}
 		if ((uint64_t)thread_join(right) != right_data.id) {
-			halt("%d: Right return wrong id.");
+			halt("Right return wrong id.");
 		}
 	}
-	log(LEVEL_V, "%d: Exit", data->id);
+	log(LEVEL_V, "Exit");
 	return (void*)data->id;
 }
 
@@ -47,14 +55,14 @@ void test_threads(void) {
 }
 
 struct test_cv_data {
-	struct critical_section cs;
+	struct mutex cs;
 	struct condition_variable cv;
 	bool is_set;
 };
 
 static void* test_cv_waiter(void* p) {
 	struct test_cv_data* data = (struct test_cv_data*)p;
-	cs_enter(&data->cs);
+	mutex_lock(&data->cs);
 	if (data->is_set) {
 		halt("Too slow...");
 	}
@@ -64,13 +72,13 @@ static void* test_cv_waiter(void* p) {
 		barrier();
 	}
 	log(LEVEL_V, "Finally!");
-	cs_leave(&data->cs);
+	mutex_unlock(&data->cs);
 	return NULL;
 }
 
 static void* test_cv_setter(void* p) {
 	struct test_cv_data* data = (struct test_cv_data*)p;
-	cs_enter(&data->cs);
+	mutex_lock(&data->cs);
 	int a = 0;
 	for (int i = 0; i != 2000; ++i) {
 		for (int j = 0; j != 2000; ++j) {
@@ -86,14 +94,14 @@ static void* test_cv_setter(void* p) {
 	data->is_set = a != 0;
 	cv_notify(&data->cv);
 	log(LEVEL_V, "Notified?");
-	cs_leave(&data->cs);
+	mutex_unlock(&data->cs);
 	return NULL;
 }
 
 void test_condition_variable() {
 	log(LEVEL_INFO, "Starting condition variable test...");
 	struct test_cv_data data;
-	cs_init(&data.cs);
+	mutex_init(&data.cs);
 	cv_init(&data.cv, &data.cs);
 	data.is_set = false;
 	barrier();
@@ -109,6 +117,6 @@ void test_condition_variable() {
 	thread_join(setter);
 
 	cv_finit(&data.cv);
-	cs_finit(&data.cs);
+	mutex_finit(&data.cs);
 	log(LEVEL_INFO, "Condition variable test completed.");
 }

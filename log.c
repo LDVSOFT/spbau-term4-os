@@ -1,6 +1,7 @@
 #include "log.h"
 #include "print.h"
 #include "interrupt.h"
+#include "threads.h"
 #include <stdarg.h>
 #include <stdbool.h>
 
@@ -43,9 +44,12 @@ void vlog_tagged(int level, const char *tag, const char* format, va_list args) {
 		return;
 	}
 	const char* level_color = log_get_color(level);
-	printf("!%s[%02d %s] ", level_color ?: "", level, tag);
+	uint64_t rflags = hard_lock();
+	struct thread* current = thread_current();
+	printf("!%s[%02d %s@%s] ", level_color ?: "", level, tag, current ? current->name : "<null>");
 	vprintf(format, args);
 	printf("%s\n", level_color ? color_reset : "");
+	hard_unlock(rflags);
 }
 
 void log_tagged(int level, const char *tag, const char* format, ...) {
