@@ -13,21 +13,21 @@
 // There always must be at least one alive thread (idle for example)
 static struct {
 	struct thread idle;
-	volatile struct thread* current;
+	struct thread* current;
 	struct thread alive;
-	volatile struct thread* alive_tail;
+	struct thread* alive_tail;
 	struct thread sleep;
 	struct thread dead;
 } scheduler;
-static volatile bool is_multithreaded = false;
+static bool is_multithreaded = false;
 
-static void thread_fictive_init(volatile struct thread* thread) {
+static void thread_fictive_init(struct thread* thread) {
 	thread->prev = thread->next = NULL;
 	thread->alt_prev = thread->alt_next = NULL;
 	thread->name = "FICTIVE";
 }
 
-static void thread_add(volatile struct thread* thread, volatile struct thread* after) {
+static void thread_add(struct thread* thread, struct thread* after) {
 	thread->next = after->next;
 	thread->prev = after;
 	if (after->next != NULL) {
@@ -36,7 +36,7 @@ static void thread_add(volatile struct thread* thread, volatile struct thread* a
 	after->next = thread;
 }
 
-static void thread_delete(volatile struct thread* thread) {
+static void thread_delete(struct thread* thread) {
 	if (scheduler.alive_tail == thread) {
 		scheduler.alive_tail = thread->prev;
 	}
@@ -49,7 +49,7 @@ static void thread_delete(volatile struct thread* thread) {
 	thread->prev = thread->next = NULL;
 }
 
-static void thread_add_alt(volatile struct thread* thread, volatile struct thread* after) {
+static void thread_add_alt(struct thread* thread, struct thread* after) {
 	thread->alt_next = after->alt_next;
 	thread->alt_prev = after;
 	if (after->alt_next != NULL) {
@@ -58,7 +58,7 @@ static void thread_add_alt(volatile struct thread* thread, volatile struct threa
 	after->alt_next = thread;
 }
 
-static void thread_delete_alt(volatile struct thread* thread) {
+static void thread_delete_alt(struct thread* thread) {
 	if (thread->alt_prev != NULL) {
 		thread->alt_prev->alt_next = thread->alt_next;
 	}
@@ -73,24 +73,26 @@ static void thread_delete_alt(volatile struct thread* thread) {
 static uint64_t hard_lock() {
 	uint64_t rflags = read_rflags();
 	interrupt_disable();
+	barrier();
 	return rflags;
 }
 
 static void hard_unlock(uint64_t rflags) {
+	barrier();
 	write_rflags(rflags);
 }
 
-void cv_init(volatile struct condition_variable* variable, volatile struct critical_section* section) {
+void cv_init(struct condition_variable* variable, struct critical_section* section) {
 	variable->section = section;
 	thread_fictive_init(&variable->head);
 }
 
-void cv_finit(volatile struct condition_variable* variable) {
+void cv_finit(struct condition_variable* variable) {
 }
 
-void cv_wait(volatile struct condition_variable* variable) {
+void cv_wait(struct condition_variable* variable) {
 	uint64_t rflags = hard_lock();
-	volatile struct thread* current = thread_current();
+	struct thread* current = thread_current();
 	// idle thread does not sleeps!
 	bool can_sleep = current != &scheduler.idle;
 	bool should_release = variable != &variable->section->is_locked;
@@ -114,7 +116,7 @@ void cv_wait(volatile struct condition_variable* variable) {
 	hard_unlock(rflags);
 }
 
-static void __cv_notify(volatile struct condition_variable* variable, volatile struct thread* wake_up) {
+static void __cv_notify(struct condition_variable* variable, struct thread* wake_up) {
 	if (wake_up == NULL) {
 		log(LEVEL_VVV, "Noone to notify! %p.", variable);
 		return;
@@ -126,16 +128,16 @@ static void __cv_notify(volatile struct condition_variable* variable, volatile s
 	thread_add(wake_up, &scheduler.alive);
 }
 
-void cv_notify(volatile struct condition_variable* variable) {
+void cv_notify(struct condition_variable* variable) {
 	uint64_t rflags = hard_lock();
-	volatile struct thread* wake_up = variable->head.alt_next;
+	struct thread* wake_up = variable->head.alt_next;
 	__cv_notify(variable, wake_up);
 	hard_unlock(rflags);
 }
 
-void cv_notify_all(volatile struct condition_variable* variable) {
+void cv_notify_all(struct condition_variable* variable) {
 	uint64_t rflags = hard_lock();
-	volatile struct thread* it = variable->head.alt_next;
+	struct thread* it = variable->head.alt_next;
 	while (it != NULL) {
 		__cv_notify(variable, it);
 		it = variable->head.alt_next;
@@ -143,34 +145,32 @@ void cv_notify_all(volatile struct condition_variable* variable) {
 	hard_unlock(rflags);
 }
 
-void cs_init(volatile struct critical_section* section) {
+void cs_init(struct critical_section* section) {
 	section->is_occupied = false;
 	cv_init(&section->is_locked, section);
 }
 
-void cs_finit(volatile struct critical_section* section) {
+void cs_finit(struct critical_section* section) {
 	cv_finit(&section->is_locked);
 }
 
-void cs_enter(volatile struct critical_section* section) {
-	if (!is_multithreaded) {
-		return;
-	}
+void cs_enter(struct critical_section* section) {
 	uint64_t rflags = hard_lock();
-	while (section->is_occupied) {
-		cv_wait(&section->is_locked);
+	if (is_multithreaded) {
+		while (section->is_occupied) {
+			cv_wait(&section->is_locked);
+		}
+		section->is_occupied = true;
 	}
-	section->is_occupied = true;
 	hard_unlock(rflags);
 }
 
-void cs_leave(volatile struct critical_section* section) {
-	if (!is_multithreaded) {
-		return;
-	}
+void cs_leave(struct critical_section* section) {
 	uint64_t rflags = hard_lock();
-	cv_notify(&section->is_locked);
-	section->is_occupied = false;
+	if (is_multithreaded) {
+		cv_notify(&section->is_locked);
+		section->is_occupied = false;
+	}
 	hard_unlock(rflags);
 }
 
@@ -208,7 +208,7 @@ void scheduler_init(void) {
 	is_multithreaded = true;
 }
 
-volatile struct thread* thread_current(void) {
+struct thread* thread_current(void) {
 	return scheduler.current;
 }
 
@@ -280,7 +280,7 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 
 void thread_run(struct thread* thread) {
 	thread_func_t func = thread->func;
-	volatile void* data = thread->data;
+	void* data = thread->data;
 
 	// Thread is created with disabled interrupts
 	interrupt_enable();
@@ -303,28 +303,26 @@ void thread_run(struct thread* thread) {
 
 void* thread_join(struct thread* thread) {
 	cs_enter(thread->cs);
-	while (true) {
-		bool is_over = thread->is_over;
-
-		if (is_over) {
-			void* data = (void*) thread->data;
-			cs_leave(thread->cs);
-			log(LEVEL_VV, "Deleting dead thread %s.", thread->name);
-			uint64_t rflags = hard_lock();
-			thread_delete(thread);
-			buddy_free(pa(thread->stack));
-			slab_free(thread);
-			hard_unlock(rflags);
-			return data;
-		} else {
-			cv_wait(thread->is_dead);
-		}
+	while (!thread->is_over) {
+		cv_wait(thread->is_dead);
 	}
+	
+	void* data = (void*) thread->data;
+	cs_leave(thread->cs);
+	log(LEVEL_VV, "Deleting dead thread %s.", thread->name);
+
+	uint64_t rflags = hard_lock();
+	thread_delete(thread);
+	buddy_free(pa(thread->stack));
+	slab_free(thread);
+	hard_unlock(rflags);
+	
+	return data;
 }
 
 void schedule(enum thread_new_state state) {
 	uint64_t rflags = hard_lock();
-	volatile struct thread* current = scheduler.current;
+	struct thread* current = scheduler.current;
 	switch (state) {
 		case THREAD_NEW_STATE_ALIVE:
 			// Push old task to end...
@@ -339,7 +337,7 @@ void schedule(enum thread_new_state state) {
 			thread_add(current, &scheduler.dead);
 	}
 	// Get new task from beginning of alive threads...
-	volatile struct thread* target = scheduler.alive.next;
+	struct thread* target = scheduler.alive.next;
 	if (target == NULL) {
 		halt("There is no alive threads!");
 	}

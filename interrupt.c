@@ -98,7 +98,7 @@ void interrupt_handler_halt(struct interrupt_info* info) {
 	asm volatile ("movq %%cr2, %0" : "=a"(tmp));
 	log(LEVEL_ERROR, "cr2=%p", tmp);
 
-	volatile struct thread* current = thread_current();
+	struct thread* current = thread_current();
 	log(LEVEL_ERROR, "Thread=%p (name=\"%s\").", current, current ? current->name : "<NULL>");
 	backtrace(info->rbp, (uint64_t)current->stack, (uint64_t)current->stack + THREAD_STACK_SIZE);
 

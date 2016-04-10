@@ -18,51 +18,51 @@ struct critical_section;
 struct condition_variable;
 
 struct thread {
-	volatile struct critical_section* cs;
-	volatile struct condition_variable* is_dead;
+	struct critical_section* cs;
+	struct condition_variable* is_dead;
 
 	const char *name;
 	thread_func_t func;
-	volatile void* data;
-	volatile bool is_over;
+	void* data;
+	bool is_over;
 
 	void* stack;
 	void* stack_pointer;
 	// Thread can be contained it 2 lists. Sheduler's one:
-	volatile struct thread* prev;
-	volatile struct thread* next;
+	struct thread* prev;
+	struct thread* next;
 	// And another one (for condition variable, etc)
-	volatile struct thread* alt_prev;
-	volatile struct thread* alt_next;
+	struct thread* alt_prev;
+	struct thread* alt_next;
 };
 
 struct condition_variable {
-	volatile struct critical_section* section;
+	struct critical_section* section;
 	struct thread head;
 };
 
 struct critical_section {
-	volatile bool is_occupied;
+	bool is_occupied;
 	struct condition_variable is_locked;
 };
 
-void cv_init(volatile struct condition_variable* varibale, volatile struct critical_section* section);
-void cv_finit(volatile struct condition_variable* variable);
-void cv_wait(volatile struct condition_variable* variable);
-void cv_notify(volatile struct condition_variable* variable);
-void cv_notify_all(volatile struct condition_variable* variable);
+void cv_init(struct condition_variable* varibale, struct critical_section* section);
+void cv_finit(struct condition_variable* variable);
+void cv_wait(struct condition_variable* variable);
+void cv_notify(struct condition_variable* variable);
+void cv_notify_all(struct condition_variable* variable);
 
-void cs_init (volatile struct critical_section* section);
-void cs_finit(volatile struct critical_section* section);
-void cs_enter(volatile struct critical_section* section);
-void cs_leave(volatile struct critical_section* section);
+void cs_init (struct critical_section* section);
+void cs_finit(struct critical_section* section);
+void cs_enter(struct critical_section* section);
+void cs_leave(struct critical_section* section);
 
 struct thread* thread_create(thread_func_t func, void* data, const char* name);
-volatile struct thread* thread_current(void);
+struct thread* thread_current(void);
 void* thread_join(struct thread* thread);
 
 // Assembly:
-void thread_switch(void* volatile* old_stack, volatile void* new_stack);
+void thread_switch(void** old_stack, void* new_stack);
 void thread_run_wrapper(void);
 
 enum thread_new_state {
