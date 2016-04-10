@@ -124,7 +124,7 @@ void slab_allocators_init(void) {
 }
 
 void slab_init(struct slab_allocator* slab_allocator, uint16_t size, uint16_t align) {
-	cs_init(&slab_allocator->cs);
+	mutex_init(&slab_allocator->lock);
 	slab_allocator->obj_size = size;
 	slab_allocator->obj_align = align;
 	struct slab* slab;
@@ -146,7 +146,7 @@ void slab_finit(struct slab_allocator* slab_allocator) {
 			slab_big_delete(slab);
 		}
 	}
-	cs_finit(&slab_allocator->cs);
+	mutex_finit(&slab_allocator->lock);
 }
 
 static void* __slab_alloc(struct slab_allocator* slab_allocator) {
@@ -186,9 +186,9 @@ static void* __slab_alloc(struct slab_allocator* slab_allocator) {
 }
 
 void* slab_alloc(struct slab_allocator* slab_allocator) {
-	cs_enter(&slab_allocator->cs);
+	mutex_lock(&slab_allocator->lock);
 	void* res = __slab_alloc(slab_allocator);
-	cs_leave(&slab_allocator->cs);
+	mutex_unlock(&slab_allocator->lock);
 	return res;
 }
 
@@ -198,7 +198,7 @@ void slab_free(void* ptr) {
 	}
 	phys_t ptr_phys = pa(ptr);
 	struct slab_allocator* slab_allocator = page_descr_for(ptr_phys)->slab_allocator;
-	cs_enter(&slab_allocator->cs);
+	mutex_lock(&slab_allocator->lock);
 	for (
 			struct list_node* list_node = list_first(&slab_allocator->slabs_head);
 			list_node != &slab_allocator->slabs_head;
@@ -214,5 +214,5 @@ void slab_free(void* ptr) {
 			break;
 		}
 	}
-	cs_leave(&slab_allocator->cs);
+	mutex_unlock(&slab_allocator->lock);
 }

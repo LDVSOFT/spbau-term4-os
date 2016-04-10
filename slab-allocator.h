@@ -23,7 +23,7 @@ struct slab {
 } __attribute__((packed));
 
 struct slab_allocator {
-	struct critical_section cs;
+	struct mutex lock;
 	struct list_node slabs_head;
 	uint16_t obj_size;
 	uint16_t obj_align;

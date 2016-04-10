@@ -15,20 +15,20 @@ static inline void barrier() {
 
 typedef void* (*thread_func_t)(void*);
 
-struct critical_section;
+struct mutex;
 
 struct condition_variable {
-	struct critical_section* section;
+	struct mutex* mutex;
 	struct list_node threads_head;
 };
 
-struct critical_section {
+struct mutex {
 	bool is_occupied;
 	struct condition_variable is_locked;
 };
 
 struct thread {
-	struct critical_section cs;
+	struct mutex lock;
 	struct condition_variable is_dead;
 
 	const char *name;
@@ -44,16 +44,16 @@ struct thread {
 	struct list_node store_link;
 };
 
-void cv_init(struct condition_variable* varibale, struct critical_section* section);
+void cv_init(struct condition_variable* varibale, struct mutex* mutex);
 void cv_finit(struct condition_variable* variable);
 void cv_wait(struct condition_variable* variable);
 void cv_notify(struct condition_variable* variable);
 void cv_notify_all(struct condition_variable* variable);
 
-void cs_init (struct critical_section* section);
-void cs_finit(struct critical_section* section);
-void cs_enter(struct critical_section* section);
-void cs_leave(struct critical_section* section);
+void mutex_init (struct mutex* mutex);
+void mutex_finit(struct mutex* mutex);
+void mutex_lock(struct mutex* mutex);
+void mutex_unlock(struct mutex* mutex);
 
 struct thread* thread_create(thread_func_t func, void* data, const char* name);
 struct thread* thread_current(void);

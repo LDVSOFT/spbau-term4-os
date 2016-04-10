@@ -40,8 +40,8 @@ static void hard_unlock(uint64_t rflags) {
 	write_rflags(rflags);
 }
 
-void cv_init(struct condition_variable* variable, struct critical_section* section) {
-	variable->section = section;
+void cv_init(struct condition_variable* variable, struct mutex* mutex) {
+	variable->mutex = mutex;
 	list_init(&variable->threads_head);
 }
 
@@ -53,13 +53,13 @@ void cv_wait(struct condition_variable* variable) {
 	struct thread* current = thread_current();
 	// idle thread does not sleeps!
 	bool can_sleep = current != &scheduler.idle;
-	bool should_release = variable != &variable->section->is_locked;
+	bool should_release = variable != &variable->mutex->is_locked;
 	if (can_sleep) {
 		list_add(&current->store_link, &variable->threads_head);
 	}
 	// If that variable is not for locking, release...
 	if (should_release) {
-		cs_leave(variable->section);
+		mutex_unlock(variable->mutex);
 	}
 	if (can_sleep) {
 		// Alive -> sleep
@@ -69,7 +69,7 @@ void cv_wait(struct condition_variable* variable) {
 	}
 	// ..and take back here.
 	if (should_release) {
-		cs_enter(variable->section);
+		mutex_lock(variable->mutex);
 	}
 	hard_unlock(rflags);
 }
@@ -104,31 +104,31 @@ void cv_notify_all(struct condition_variable* variable) {
 	hard_unlock(rflags);
 }
 
-void cs_init(struct critical_section* section) {
-	section->is_occupied = false;
-	cv_init(&section->is_locked, section);
+void mutex_init(struct mutex* mutex) {
+	mutex->is_occupied = false;
+	cv_init(&mutex->is_locked, mutex);
 }
 
-void cs_finit(struct critical_section* section) {
-	cv_finit(&section->is_locked);
+void mutex_finit(struct mutex* mutex) {
+	cv_finit(&mutex->is_locked);
 }
 
-void cs_enter(struct critical_section* section) {
+void mutex_lock(struct mutex* mutex) {
 	uint64_t rflags = hard_lock();
 	if (is_multithreaded) {
-		while (section->is_occupied) {
-			cv_wait(&section->is_locked);
+		while (mutex->is_occupied) {
+			cv_wait(&mutex->is_locked);
 		}
-		section->is_occupied = true;
+		mutex->is_occupied = true;
 	}
 	hard_unlock(rflags);
 }
 
-void cs_leave(struct critical_section* section) {
+void mutex_unlock(struct mutex* mutex) {
 	uint64_t rflags = hard_lock();
 	if (is_multithreaded) {
-		cv_notify(&section->is_locked);
-		section->is_occupied = false;
+		cv_notify(&mutex->is_locked);
+		mutex->is_occupied = false;
 	}
 	hard_unlock(rflags);
 }
@@ -144,8 +144,8 @@ void scheduler_init(void) {
 	list_init(&scheduler.dead);
 
 	struct thread* main = &scheduler.idle;
-	cs_init(&main->cs);
-	cv_init(&main->is_dead, &main->cs);
+	mutex_init(&main->lock);
+	cv_init(&main->is_dead, &main->lock);
 	main->name = "main (idle)";
 	list_init(&main->scheduler_link);
 	list_init(&main->store_link);
@@ -169,8 +169,8 @@ struct thread* thread_create(thread_func_t func, void* data, const char* name) {
 		buddy_free(stack_phys);
 		return NULL;
 	}
-	cs_init(&thread->cs);
-	cv_init(&thread->is_dead, &thread->cs);
+	mutex_init(&thread->lock);
+	cv_init(&thread->is_dead, &thread->lock);
 	thread->func = func;
 	thread->data = data;
 	thread->is_over = false;
@@ -220,11 +220,11 @@ void thread_run(struct thread* thread) {
 
 	uint64_t rflags = hard_lock();
 
-	cs_enter(&thread->cs);
+	mutex_lock(&thread->lock);
 	thread->is_over = true;
 	thread->data = data;
 	cv_notify(&thread->is_dead);
-	cs_leave(&thread->cs);
+	mutex_unlock(&thread->lock);
 
 	schedule(THREAD_NEW_STATE_DEAD);
 	hard_unlock(rflags);
@@ -232,17 +232,19 @@ void thread_run(struct thread* thread) {
 }
 
 void* thread_join(struct thread* thread) {
-	cs_enter(&thread->cs);
+	mutex_lock(&thread->lock);
 	while (!thread->is_over) {
 		cv_wait(&thread->is_dead);
 	}
 	
 	void* data = (void*) thread->data;
-	cs_leave(&thread->cs);
+	mutex_unlock(&thread->lock);
 	log(LEVEL_VV, "Deleting dead thread %s.", thread->name);
 
 	uint64_t rflags = hard_lock();
 	list_delete(&thread->scheduler_link);
+	cv_finit(&thread->is_dead);
+	mutex_finit(&thread->lock);
 	buddy_free(pa(thread->stack));
 	slab_free(thread);
 	hard_unlock(rflags);

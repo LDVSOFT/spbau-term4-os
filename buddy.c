@@ -130,7 +130,7 @@ static void buddy_init_iterator_init(struct buddy_init_iterator* self) {
 void buddy_init(void) {
 	bootstrap_init_mmap();
 
-	cs_init(&buddy_allocator.cs);
+	mutex_init(&buddy_allocator.lock);
 	struct buddy_init_iterator iterator;
 	buddy_init_iterator_init(&iterator);
 	mmap_iterate(bootstrap_mmap, bootstrap_mmap_length, (struct mmap_iterator*) &iterator);
@@ -179,9 +179,9 @@ static phys_t __buddy_alloc(int level) {
 }
 
 phys_t buddy_alloc(int level) {
-	cs_enter(&buddy_allocator.cs);
+	mutex_lock(&buddy_allocator.lock);
 	phys_t res = __buddy_alloc(level);
-	cs_leave(&buddy_allocator.cs);
+	mutex_unlock(&buddy_allocator.lock);
 	return res;
 }
 
@@ -218,9 +218,9 @@ static void __buddy_free(phys_t pointer) {
 }
 
 void buddy_free(phys_t ptr) {
-	cs_enter(&buddy_allocator.cs);
+	mutex_lock(&buddy_allocator.lock);
 	__buddy_free(ptr);
-	cs_leave(&buddy_allocator.cs);
+	mutex_unlock(&buddy_allocator.lock);
 }
 
 struct page_descr* page_descr_for(phys_t ptr) {

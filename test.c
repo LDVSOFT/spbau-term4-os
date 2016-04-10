@@ -47,14 +47,14 @@ void test_threads(void) {
 }
 
 struct test_cv_data {
-	struct critical_section cs;
+	struct mutex cs;
 	struct condition_variable cv;
 	bool is_set;
 };
 
 static void* test_cv_waiter(void* p) {
 	struct test_cv_data* data = (struct test_cv_data*)p;
-	cs_enter(&data->cs);
+	mutex_lock(&data->cs);
 	if (data->is_set) {
 		halt("Too slow...");
 	}
@@ -64,13 +64,13 @@ static void* test_cv_waiter(void* p) {
 		barrier();
 	}
 	log(LEVEL_V, "Finally!");
-	cs_leave(&data->cs);
+	mutex_unlock(&data->cs);
 	return NULL;
 }
 
 static void* test_cv_setter(void* p) {
 	struct test_cv_data* data = (struct test_cv_data*)p;
-	cs_enter(&data->cs);
+	mutex_lock(&data->cs);
 	int a = 0;
 	for (int i = 0; i != 2000; ++i) {
 		for (int j = 0; j != 2000; ++j) {
@@ -86,14 +86,14 @@ static void* test_cv_setter(void* p) {
 	data->is_set = a != 0;
 	cv_notify(&data->cv);
 	log(LEVEL_V, "Notified?");
-	cs_leave(&data->cs);
+	mutex_unlock(&data->cs);
 	return NULL;
 }
 
 void test_condition_variable() {
 	log(LEVEL_INFO, "Starting condition variable test...");
 	struct test_cv_data data;
-	cs_init(&data.cs);
+	mutex_init(&data.cs);
 	cv_init(&data.cv, &data.cs);
 	data.is_set = false;
 	barrier();
@@ -109,6 +109,6 @@ void test_condition_variable() {
 	thread_join(setter);
 
 	cv_finit(&data.cv);
-	cs_finit(&data.cs);
+	mutex_finit(&data.cs);
 	log(LEVEL_INFO, "Condition variable test completed.");
 }
