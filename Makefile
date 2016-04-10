@@ -34,10 +34,10 @@ kernel: $(OBJ) kernel.ld Makefile
 
 .PHONY: clean clean-full run run-log run-debug
 clean:
-	rm -f kernel $(OBJ) $(DEP)
+	rm -f kernel $(OBJ) $(DEP) log.txt
 
 clean-full:
-	rm -f kernel *.o *.d
+	rm -f kernel *.o *.d log.txt
 
 run: kernel
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(RUN_FLAGS)
