@@ -32,18 +32,21 @@ kernel: $(OBJ) kernel.ld Makefile
 
 -include $(DEP)
 
+initramfs.cpio: $(shell find initramfs)
+	(cd initramfs; ../make_initramfs.sh . ../initramfs.cpio)
+
 .PHONY: clean clean-full run run-log run-debug
 clean:
-	rm -f kernel $(OBJ) $(DEP) log.txt
+	rm -f kernel $(OBJ) $(DEP) log.txt initramfs.cpio
 
 clean-full:
-	rm -f kernel *.o *.d log.txt
+	rm -f kernel *.o *.d log.txt initramfs.cpio
 
-run: kernel
+run: kernel initramfs.cpio
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(RUN_FLAGS)
 
-run-log: kernel
+run-log: kernel initramfs.cpio
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=1 log_clr=0' $(RUN_FLAGS) | tee log.txt | grep -vE '^!'
 
-run-debug: kernel
+run-debug: kernel initramfs.cpio
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=10 log_clr=1' -s $(RUN_FLAGS)
