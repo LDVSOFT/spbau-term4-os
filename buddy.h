@@ -37,3 +37,7 @@ phys_t buddy_alloc(int level);
 void buddy_free(phys_t pointer);
 
 struct page_descr* page_descr_for(phys_t ptr);
+
+static inline uint64_t buddy_size(int level) {
+	return 1ull << (level + PAGE_BITS);
+}

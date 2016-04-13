@@ -12,6 +12,8 @@
 #include "threads.h"
 #include "cmdline.h"
 #include "test.h"
+#include "fs.h"
+#include "string.h"
 
 #include <stdbool.h>
 
@@ -55,6 +57,41 @@ void main(void) {
 	scheduler_init();
 	log(LEVEL_INFO, "Scheduler is ready, multithreading is on.");
 	interrupt_enable();
+
+	log(LEVEL_INFO, "Preparing file system...");
+	fs_init();
+	log(LEVEL_INFO, "File system is ready.");
+
+	const char* bfr = "123124125-";
+	char buffer[] =   "123124125-";
+	const int cc = 10000;
+	int len = strlen(buffer);
+	mkdir("/test");
+	struct file_desc* fd = open("/test/test.txt", O_CREAT | O_TRUNCATE);
+	for (int i = 0; i != cc; ++i) {
+		buffer[len - 1] = i;
+		int cnt = write(fd, buffer, len);
+		if (cnt != len) {
+			halt("Failed to write data (%d / %d)!", cnt, len);
+		}
+	}
+	close(fd);
+
+	fd = open("/test/test.txt", 0);
+	for (int i = 0; i != cc; ++i) {
+		int cnt = read(fd, buffer, len);
+		if (cnt != len) {
+			halt("Failed to read data (%d / %d)", cnt, len);
+			if (strncmp(buffer, bfr, len - 1) != 0 || buffer[len - 1] != i) {
+				halt("Wrond data.");
+			}
+		}
+	}
+	if (read(fd, buffer, 1) != 0) {
+		halt("Hey");
+	}
+	close(fd);
+	ls();
 
 	#ifdef CONFIG_TESTS
 	printf("Starting tests!\n");
