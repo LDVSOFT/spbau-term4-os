@@ -22,7 +22,6 @@
 
 #ifndef __ASM_FILE__
 
-#include "multiboot.h"
 #include <stdint.h>
 
 #define BOOTMEM_SIZE      (4ull * 1024ull * 1024ull * 1024ull)

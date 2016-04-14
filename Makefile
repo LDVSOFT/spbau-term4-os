@@ -2,7 +2,7 @@ CC ?= gcc
 LD ?= gcc
 QEMU = qemu-system-x86_64
 
-RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm
+RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm -initrd initramfs.cpio
 # -pedantic is off because I want some GCC extensions
 CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding -fno-omit-frame-pointer \
 	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -Og \
@@ -15,7 +15,7 @@ ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
 	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c \
-	test.c list.c fs.c
+	test.c list.c fs.c initramfs.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
@@ -32,8 +32,10 @@ kernel: $(OBJ) kernel.ld Makefile
 
 -include $(DEP)
 
-initramfs.cpio: $(shell find initramfs)
-	(cd initramfs; ../make_initramfs.sh . ../initramfs.cpio)
+INITRAMFS_FILES := $(wildcard initramfs_source/**)
+
+initramfs.cpio: $(INITRAMFS_FILES)
+	(cd initramfs_source; ../make_initramfs.sh . ../initramfs.cpio)
 
 .PHONY: clean clean-full run run-log run-debug
 clean:

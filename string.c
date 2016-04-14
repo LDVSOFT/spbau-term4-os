@@ -6,7 +6,7 @@ int strlen(const char* s) {
 	return i;
 }
 
-int strncmp(const char* a, const char* b, int n) {
+int strncmp(const char* a, const char* b, unsigned int n) {
 	while (n > 0 && *a == *b && *a) {
 		--n;
 		++a;
@@ -22,6 +22,10 @@ int strncmp(const char* a, const char* b, int n) {
 		return 1;
 	}
 	return 0;
+}
+
+int strcmp(const char* a, const char* b) {
+	return strncmp(a, b, -1);
 }
 
 char* strncpy(char* dst, const char* src, int n) {

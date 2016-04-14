@@ -1,5 +1,4 @@
-#ifndef __INITRAMFS_H__
-#define __INITRAMFS_H__
+#pragma once
 
 #define S_IFMT	0xF000
 #define S_IFDIR	0x4000
@@ -8,7 +7,8 @@
 #define S_ISDIR(mode)	(((mode) & S_IFMT) == S_IFDIR)
 #define S_ISREG(mode)	(((mode) & S_IFMT) == S_IFREG)
 
-#define END_OF_ARCHIVE	"TRAILER!!!"
+#define CPIO_END_OF_ARCHIVE	"TRAILER!!!"
+#define CPIO_MAGIC           "070701"
 
 struct cpio_header {
 	char magic[6];
@@ -27,4 +27,4 @@ struct cpio_header {
 	char chksum[8];
 } __attribute__((packed));
 
-#endif /*__INITRAMFS_H__*/
+void initramfs_load(void);

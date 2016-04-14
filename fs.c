@@ -131,7 +131,7 @@ static struct file* file_open(const char* pathname, enum file_type type, int fla
 		slab_free(dir_entry);
 		return NULL;
 	}
-	list_add_tail(&dir->entries_head, &dir_entry->link);
+	list_add_tail(&dir_entry->link, &dir->entries_head);
 	mutex_unlock(&dir->lock);
 	return &dir_entry->file;
 }
@@ -173,10 +173,11 @@ uint64_t read(struct file_desc* fd, char* buffer, uint64_t size) {
 
 uint64_t write(struct file_desc* fd, const char* buffer, uint64_t size) {
 	mutex_lock(&fd->file->lock);
-	if (fd->pos + size > buddy_size(fd->file->size_level)) {
+	while (fd->pos + size > buddy_size(fd->file->size_level) && fd->file->size_level < BUDDY_LEVELS - 1) {
 		//Try to relocate...
 		if (!file_resize(fd->file, fd->file->size_level + 1)) {
 			log(LEVEL_WARN, "Failed to increment file size.");
+			break;
 		}
 	}
 	uint64_t amount = 0;
