@@ -41,8 +41,7 @@ struct dir_entry {
 enum file_flags {
 	O_APPEND    = 1 << 0,
 	O_CREAT     = 1 << 1,
-	O_DIRECTORY = 1 << 2,
-	O_TRUNCATE  = 1 << 3
+	O_TRUNCATE  = 1 << 2
 };
 
 void fs_init(void);
