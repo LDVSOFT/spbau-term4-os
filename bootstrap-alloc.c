@@ -103,8 +103,13 @@ void bootstrap_init_mmap(void) {
 
 	if ((info->flags & (1 << MBOOT_INFO_MMAP)) != 0) {
 		struct mboot_info_mod* mods = (struct mboot_info_mod*) va(info->mods_addr);
-		log(LEVEL_LOG, "Purging modules array memory: [%p..%p)", mods, mods + info->mods_count);
-		bootstrap_del((uint64_t) mods, (uint64_t) mods + info->mods_count);
+		log(
+				LEVEL_LOG,
+				"Purging modules array memory: [%p..%p)",
+				info->mods_addr,
+				info->mods_addr + info->mods_count * sizeof(struct mboot_info_mod)
+		);
+		bootstrap_del(info->mods_addr, info->mods_addr + info->mods_count * sizeof(struct mboot_info_mod));
 		for (unsigned int i = 0; i != info->mods_count; ++i) {
 			log(LEVEL_LOG, "Purging module %d memory: [%p..%p)", i, mods[i].mod_start, mods[i].mod_end);
 			bootstrap_del(mods[i].mod_start, mods[i].mod_end);
