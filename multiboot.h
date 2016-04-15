@@ -1,5 +1,6 @@
 #pragma once
 
+#include "memory.h"
 #include <stdint.h>
 
 extern uint32_t mboot_info;
@@ -47,8 +48,21 @@ struct mboot_info {
 	#define MBOOT_INFO_VIDEO            11
 	uint32_t vbe_control_info;
 	uint32_t vbe_mode_info;
-	uint32_t vbe_mode;
-	uint32_t vbe_interface_seg;
-	uint32_t vbe_interface_off;
-	uint32_t vbe_interface_len;
+	uint16_t vbe_mode;
+	uint16_t vbe_interface_seg;
+	uint16_t vbe_interface_off;
+	uint16_t vbe_interface_len;
 } __attribute__((packed));
+
+struct mboot_info_mod {
+	uint32_t mod_start;
+	uint32_t mod_end;
+	uint32_t string;
+	uint32_t reserved;
+} __attribute__((packed));
+
+static struct mboot_info* mboot_info_get(void) {
+	//Thanks to linker, just access `mboot_info' will access it via low memoty.
+	//So, first we need to jump there via high memory, and them read the freaking pointer.
+	return (struct mboot_info*) va(*(uint64_t*) va((uint64_t) &mboot_info));
+}

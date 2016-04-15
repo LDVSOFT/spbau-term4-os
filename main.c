@@ -12,12 +12,16 @@
 #include "threads.h"
 #include "cmdline.h"
 #include "test.h"
+#include "fs.h"
+#include "string.h"
+#include "initramfs.h"
+#include "multiboot.h"
 
 #include <stdbool.h>
 
 void init_memory(void) {
 	log(LEVEL_VVV, "Original MMAP:");
-	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
+	struct mboot_info* info = mboot_info_get();
 	print_mmap(va(info->mmap_addr), info->mmap_length);
 
 	buddy_init();
@@ -55,6 +59,16 @@ void main(void) {
 	scheduler_init();
 	log(LEVEL_INFO, "Scheduler is ready, multithreading is on.");
 	interrupt_enable();
+
+	log(LEVEL_INFO, "Preparing file system...");
+	fs_init();
+	log(LEVEL_INFO, "File system is ready.");
+
+	log(LEVEL_INFO, "Loading initramfs...");
+	initramfs_load();
+	log(LEVEL_INFO, "Loading done. Starting ls()...");
+	ls();
+	log(LEVEL_INFO, "ls() done.");
 
 	#ifdef CONFIG_TESTS
 	printf("Starting tests!\n");

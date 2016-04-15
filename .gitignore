@@ -2,3 +2,4 @@
 *.d
 kernel
 log.txt
+initramfs.cpio

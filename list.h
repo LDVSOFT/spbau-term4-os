@@ -16,4 +16,4 @@ void list_add(struct list_node* node, struct list_node* head);
 void list_add_tail(struct list_node* node, struct list_node* head);
 void list_delete(struct list_node* node);
 
-#define LIST_ENTRY(node, type, member) (type*) ((char*)(node) - offsetof(type, member))
+#define LIST_ENTRY(node, type, member) ( (type*) ((char*)(node) - offsetof(type, member)) )

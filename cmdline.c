@@ -28,7 +28,7 @@ static int read_arg_str(const char **s, char *buffer, int n) {
 }
 
 void read_cmdline(void) {
-	struct mboot_info* info = (struct mboot_info*)va(mboot_info);
+	struct mboot_info* info = mboot_info_get();
 	if ((info->flags & (1 << MBOOT_INFO_CMDLINE)) == 0) {
 		log(LEVEL_WARN, "No cmdline available :(");
 		return;

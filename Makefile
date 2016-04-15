@@ -2,7 +2,7 @@ CC ?= gcc
 LD ?= gcc
 QEMU = qemu-system-x86_64
 
-RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm
+RUNFLAGS := -no-reboot -no-shutdown -serial stdio -enable-kvm -initrd initramfs.cpio
 # -pedantic is off because I want some GCC extensions
 CFLAGS := -g -m64 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -ffreestanding -fno-omit-frame-pointer \
 	-mcmodel=kernel -Wall -Wextra -Werror -std=gnu11 -Og \
@@ -15,7 +15,7 @@ ADEP:= $(ASM:.S=.d)
 
 SRC := main.c pic.c interrupt.c serial.c pit.c print.c memory.c buddy.c \
 	bootstrap-alloc.c paging.c log.c slab-allocator.c threads.c string.c cmdline.c \
-	test.c list.c
+	test.c list.c fs.c initramfs.c
 OBJ := $(AOBJ) $(SRC:.c=.o)
 DEP := $(ADEP) $(SRC:.c=.d)
 
@@ -32,18 +32,23 @@ kernel: $(OBJ) kernel.ld Makefile
 
 -include $(DEP)
 
+INITRAMFS_FILES := $(wildcard initramfs_source/**)
+
+initramfs.cpio: $(INITRAMFS_FILES)
+	(cd initramfs_source; ../make_initramfs.sh . ../initramfs.cpio)
+
 .PHONY: clean clean-full run run-log run-debug
 clean:
-	rm -f kernel $(OBJ) $(DEP) log.txt
+	rm -f kernel $(OBJ) $(DEP) log.txt initramfs.cpio
 
 clean-full:
-	rm -f kernel *.o *.d log.txt
+	rm -f kernel *.o *.d log.txt initramfs.cpio
 
-run: kernel
+run: kernel initramfs.cpio
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=30 log_clr=1' $(RUN_FLAGS)
 
-run-log: kernel
+run-log: kernel initramfs.cpio
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=1 log_clr=0' $(RUN_FLAGS) | tee log.txt | grep -vE '^!'
 
-run-debug: kernel
+run-debug: kernel initramfs.cpio
 	$(QEMU) $(RUNFLAGS) -kernel kernel -append 'log_lvl=10 log_clr=1' -s $(RUN_FLAGS)
