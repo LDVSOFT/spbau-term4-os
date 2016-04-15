@@ -72,9 +72,9 @@
 |Threads               |Yes           |
 |*Mutex*               |Yes           |
 |*Condition var*       |Yes           |
-|**File systems**      |**?/2/2**     |
-|Initrd                |Yes?          |
-|File system           |Yes?          |
+|**File systems**      |**2/2/2**     |
+|Initrd                |Yes           |
+|File system           |Yes           |
 |**Assignment 5**      |**-/?/?**     |
-|***TOTAL***           |***12/11/17***|
+|***TOTAL***           |***14/11/17***|
 
