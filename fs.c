@@ -240,7 +240,7 @@ void closedir(struct directory_desc* dir_desc) {
 static void __ls(struct file* file, int offset) {
 	mutex_lock(&file->lock);
 	if (file->type == T_REGULAR) {
-		printf("regular size=%ull level=%d data@%p.\n", file->size, file->size_level, file->data);
+		printf("regular size=%llu level=%d data@%p.\n", file->size, file->size_level, file->data);
 	} else {
 		printf("directory.\n");
 		for (
